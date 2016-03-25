@@ -115,6 +115,10 @@ class MysqlSchema extends BaseSchema
         if (strpos($col, 'char') !== false) {
             return ['type' => 'string', 'length' => $length];
         }
+        $textTypes = ['tinytext', 'text', 'mediumtext', 'longtext'];
+        if (in_array($col, $textTypes)) {
+            return ['type' => $col, 'length' => null];
+        }
         if (strpos($col, 'text') !== false) {
             return ['type' => 'text', 'length' => $length];
         }
@@ -289,7 +293,10 @@ class MysqlSchema extends BaseSchema
             'binary' => ' LONGBLOB',
             'float' => ' FLOAT',
             'decimal' => ' DECIMAL',
+            'tinytext' => ' TINYTEXT',
             'text' => ' TEXT',
+            'mediumtext' => ' MEDIUMTEXT',
+            'longtext' => ' LONGTEXT',
             'date' => ' DATE',
             'time' => ' TIME',
             'datetime' => ' DATETIME',

@@ -100,7 +100,15 @@ class MysqlSchemaTest extends TestCase
             ],
             [
                 'TINYTEXT',
-                ['type' => 'text', 'length' => null]
+                ['type' => 'tinytext', 'length' => null]
+            ],
+            [
+                'MEDIUMTEXT',
+                ['type' => 'mediumtext', 'length' => null]
+            ],
+            [
+                'LONGTEXT',
+                ['type' => 'longtext', 'length' => null]
             ],
             [
                 'BLOB',
