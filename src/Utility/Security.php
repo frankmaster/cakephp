@@ -1,16 +1,16 @@
 <?php
 /**
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
  * @since         0.10.0
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 namespace Cake\Utility;
 
@@ -20,7 +20,6 @@ use InvalidArgumentException;
 
 /**
  * Security Library contains utility methods related to security
- *
  */
 class Security
 {
@@ -57,7 +56,7 @@ class Security
      * @param mixed $salt If true, automatically prepends the application's salt
      *   value to $string (Security.salt).
      * @return string Hash
-     * @link http://book.cakephp.org/3.0/en/core-libraries/security.html#hashing-data
+     * @link https://book.cakephp.org/3.0/en/core-libraries/security.html#hashing-data
      */
     public static function hash($string, $type = null, $salt = false)
     {
@@ -104,7 +103,17 @@ class Security
             return random_bytes($length);
         }
         if (function_exists('openssl_random_pseudo_bytes')) {
-            return openssl_random_pseudo_bytes($length);
+            $bytes = openssl_random_pseudo_bytes($length, $strongSource);
+            if (!$strongSource) {
+                trigger_error(
+                    'openssl was unable to use a strong source of entropy. ' .
+                    'Consider updating your system libraries, or ensuring ' .
+                    'you have more available entropy.',
+                    E_USER_WARNING
+                );
+            }
+
+            return $bytes;
         }
         trigger_error(
             'You do not have a safe source of random data available. ' .
@@ -112,11 +121,30 @@ class Security
             'Falling back to an insecure random source.',
             E_USER_WARNING
         );
+
+        return static::insecureRandomBytes($length);
+    }
+
+    /**
+     * Like randomBytes() above, but not cryptographically secure.
+     *
+     * @param int $length The number of bytes you want.
+     * @return string Random bytes in binary.
+     * @see \Cake\Utility\Security::randomBytes()
+     */
+    public static function insecureRandomBytes($length)
+    {
+        $length *= 2;
+
         $bytes = '';
-        while ($bytes < $length) {
+        $byteLength = 0;
+        while ($byteLength < $length) {
             $bytes .= static::hash(Text::uuid() . uniqid(mt_rand(), true), 'sha512', true);
+            $byteLength = strlen($bytes);
         }
-        return substr($bytes, 0, $length);
+        $bytes = substr($bytes, 0, $length);
+
+        return pack('H*', $bytes);
     }
 
     /**
@@ -170,6 +198,7 @@ class Security
             throw new InvalidArgumentException('You must use a key larger than 32 bytes for Security::rijndael()');
         }
         $crypto = static::engine();
+
         return $crypto->rijndael($text, $key, $operation);
     }
 
@@ -199,6 +228,7 @@ class Security
         $crypto = static::engine();
         $ciphertext = $crypto->encrypt($plain, $key);
         $hmac = hash_hmac('sha256', $ciphertext, $key);
+
         return $hmac . $ciphertext;
     }
 
@@ -225,7 +255,7 @@ class Security
      * @param string $cipher The ciphertext to decrypt.
      * @param string $key The 256 bit/32 byte key to use as a cipher key.
      * @param string|null $hmacSalt The salt to use for the HMAC process. Leave null to use Security.salt.
-     * @return string Decrypted data. Any trailing null bytes will be removed.
+     * @return string|bool Decrypted data. Any trailing null bytes will be removed.
      * @throws \InvalidArgumentException On invalid data or key.
      */
     public static function decrypt($cipher, $key, $hmacSalt = null)
@@ -252,6 +282,7 @@ class Security
         }
 
         $crypto = static::engine();
+
         return $crypto->decrypt($cipher, $key);
     }
 
@@ -277,13 +308,38 @@ class Security
         for ($i = 0; $i < $hashLength; $i++) {
             $result |= (ord($hmac[$i]) ^ ord($compare[$i]));
         }
+
         return $result === 0;
+    }
+
+    /**
+     * Gets the HMAC salt to be used for encryption/decryption
+     * routines.
+     *
+     * @return string The currently configured salt
+     */
+    public static function getSalt()
+    {
+        return static::$_salt;
+    }
+
+    /**
+     * Sets the HMAC salt to be used for encryption/decryption
+     * routines.
+     *
+     * @param string $salt The salt to use for encryption routines.
+     * @return void
+     */
+    public static function setSalt($salt)
+    {
+        static::$_salt = (string)$salt;
     }
 
     /**
      * Gets or sets the HMAC salt to be used for encryption/decryption
      * routines.
      *
+     * @deprecated 3.5.0 Use getSalt()/setSalt() instead.
      * @param string|null $salt The salt to use for encryption routines. If null returns current salt.
      * @return string The currently configured salt
      */
@@ -292,6 +348,7 @@ class Security
         if ($salt === null) {
             return static::$_salt;
         }
+
         return static::$_salt = (string)$salt;
     }
 }

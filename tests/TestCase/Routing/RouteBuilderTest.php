@@ -1,24 +1,28 @@
 <?php
 /**
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
  * @since         3.0.0
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 namespace Cake\Test\TestCase\Routing;
 
+use Cake\Core\Plugin;
 use Cake\Routing\RouteBuilder;
 use Cake\Routing\RouteCollection;
 use Cake\Routing\Router;
+use Cake\Routing\Route\InflectedRoute;
+use Cake\Routing\Route\RedirectRoute;
 use Cake\Routing\Route\Route;
 use Cake\TestSuite\TestCase;
+use stdClass;
 
 /**
  * RouteBuilder test case
@@ -35,6 +39,17 @@ class RouteBuilderTest extends TestCase
     {
         parent::setUp();
         $this->collection = new RouteCollection();
+    }
+
+    /**
+     * Teardown method
+     *
+     * @return void
+     */
+    public function tearDown()
+    {
+        parent::tearDown();
+        Plugin::unload('TestPlugin');
     }
 
     /**
@@ -81,8 +96,8 @@ class RouteBuilderTest extends TestCase
 
         $all = $this->collection->routes();
         $this->assertCount(2, $all);
-        $this->assertInstanceOf('Cake\Routing\Route\Route', $all[0]);
-        $this->assertInstanceOf('Cake\Routing\Route\Route', $all[1]);
+        $this->assertInstanceOf(Route::class, $all[0]);
+        $this->assertInstanceOf(Route::class, $all[1]);
     }
 
     /**
@@ -102,12 +117,13 @@ class RouteBuilderTest extends TestCase
         $routes->connect('/:controller/:action/*');
 
         $all = $this->collection->routes();
-        $this->assertInstanceOf('Cake\Routing\Route\InflectedRoute', $all[0]);
-        $this->assertInstanceOf('Cake\Routing\Route\InflectedRoute', $all[1]);
+        $this->assertInstanceOf(InflectedRoute::class, $all[0]);
+        $this->assertInstanceOf(InflectedRoute::class, $all[1]);
 
         $this->collection = new RouteCollection();
         $routes = new RouteBuilder($this->collection, '/l');
-        $routes->routeClass('TestApp\Routing\Route\DashedRoute');
+        $this->assertSame($routes, $routes->setRouteClass('TestApp\Routing\Route\DashedRoute'));
+        $this->assertSame('TestApp\Routing\Route\DashedRoute', $routes->getRouteClass());
 
         $routes->connect('/:controller', ['action' => 'index']);
         $all = $this->collection->routes();
@@ -124,7 +140,7 @@ class RouteBuilderTest extends TestCase
         $routes = new RouteBuilder($this->collection, '/l', ['prefix' => 'api']);
 
         $route = new Route('/:controller');
-        $this->assertNull($routes->connect($route));
+        $this->assertSame($route, $routes->connect($route));
 
         $result = $this->collection->routes()[0];
         $this->assertSame($route, $result);
@@ -139,10 +155,10 @@ class RouteBuilderTest extends TestCase
     {
         $routes = new RouteBuilder($this->collection, '/l', ['prefix' => 'api']);
 
-        $this->assertNull($routes->connect('/:controller'));
-        $route = $this->collection->routes()[0];
+        $route = $routes->connect('/:controller');
+        $this->assertInstanceOf(Route::class, $route);
 
-        $this->assertInstanceOf('Cake\Routing\Route\Route', $route);
+        $this->assertSame($route, $this->collection->routes()[0]);
         $this->assertEquals('/l/:controller', $route->template);
         $expected = ['prefix' => 'api', 'action' => 'index', 'plugin' => null];
         $this->assertEquals($expected, $route->defaults);
@@ -158,9 +174,43 @@ class RouteBuilderTest extends TestCase
         $routes = new RouteBuilder($this->collection, '/articles', ['controller' => 'Articles']);
         $routes->connect('/', ['action' => 'index']);
 
-        $expected = ['plugin' => null, 'controller' => 'Articles', 'action' => 'index', 'pass' => []];
+        $expected = [
+            'plugin' => null,
+            'controller' => 'Articles',
+            'action' => 'index',
+            'pass' => [],
+            '_matchedRoute' => '/articles',
+        ];
         $this->assertEquals($expected, $this->collection->parse('/articles'));
         $this->assertEquals($expected, $this->collection->parse('/articles/'));
+    }
+
+    /**
+     * Test if a route name already exist
+     *
+     * @return void
+     */
+    public function testNameExists()
+    {
+        $routes = new RouteBuilder($this->collection, '/l', ['prefix' => 'api']);
+
+        $this->assertFalse($routes->nameExists('myRouteName'));
+
+        $routes->connect('myRouteUrl', ['action' => 'index'], ['_name' => 'myRouteName']);
+
+        $this->assertTrue($routes->nameExists('myRouteName'));
+    }
+
+    /**
+     * Test setExtensions() and getExtensions().
+     *
+     * @return void
+     */
+    public function testExtensions()
+    {
+        $routes = new RouteBuilder($this->collection, '/l');
+        $this->assertSame($routes, $routes->setExtensions(['html']));
+        $this->assertSame(['html'], $routes->getExtensions());
     }
 
     /**
@@ -176,13 +226,13 @@ class RouteBuilderTest extends TestCase
             [],
             ['extensions' => ['json']]
         );
-        $this->assertEquals(['json'], $routes->extensions());
+        $this->assertEquals(['json'], $routes->getExtensions());
 
         $routes->connect('/:controller');
         $route = $this->collection->routes()[0];
 
         $this->assertEquals(['json'], $route->options['_ext']);
-        $routes->extensions(['xml', 'json']);
+        $routes->setExtensions(['xml', 'json']);
 
         $routes->connect('/:controller/:action');
         $new = $this->collection->routes()[1];
@@ -203,26 +253,26 @@ class RouteBuilderTest extends TestCase
             [],
             ['extensions' => ['json']]
         );
-        $this->assertEquals(['json'], $routes->extensions());
+        $this->assertEquals(['json'], $routes->getExtensions());
 
         $routes->addExtensions(['xml']);
-        $this->assertEquals(['json', 'xml'], $routes->extensions());
+        $this->assertEquals(['json', 'xml'], $routes->getExtensions());
 
         $routes->addExtensions('csv');
-        $this->assertEquals(['json', 'xml', 'csv'], $routes->extensions());
+        $this->assertEquals(['json', 'xml', 'csv'], $routes->getExtensions());
     }
 
     /**
-     * test that extensions() accepts a string.
+     * test that setExtensions() accepts a string.
      *
      * @return void
      */
     public function testExtensionsString()
     {
         $routes = new RouteBuilder($this->collection, '/l');
-        $routes->extensions('json');
+        $routes->setExtensions('json');
 
-        $this->assertEquals(['json'], $routes->extensions());
+        $this->assertEquals(['json'], $routes->getExtensions());
     }
 
     /**
@@ -252,8 +302,8 @@ class RouteBuilderTest extends TestCase
      */
     public function testConnectConflictingParameters()
     {
-        $routes = new RouteBuilder($this->collection, '/admin', ['prefix' => 'admin']);
-        $routes->connect('/', ['prefix' => 'manager', 'controller' => 'Dashboard', 'action' => 'view']);
+        $routes = new RouteBuilder($this->collection, '/admin', ['plugin' => 'TestPlugin']);
+        $routes->connect('/', ['plugin' => 'TestPlugin2', 'controller' => 'Dashboard', 'action' => 'view']);
     }
 
     /**
@@ -267,12 +317,12 @@ class RouteBuilderTest extends TestCase
         $routes->redirect('/p/:id', ['controller' => 'posts', 'action' => 'view'], ['status' => 301]);
         $route = $this->collection->routes()[0];
 
-        $this->assertInstanceOf('Cake\Routing\Route\RedirectRoute', $route);
+        $this->assertInstanceOf(RedirectRoute::class, $route);
 
         $routes->redirect('/old', '/forums', ['status' => 301]);
         $route = $this->collection->routes()[1];
 
-        $this->assertInstanceOf('Cake\Routing\Route\RedirectRoute', $route);
+        $this->assertInstanceOf(RedirectRoute::class, $route);
         $this->assertEquals('/forums', $route->redirect[0]);
     }
 
@@ -284,8 +334,25 @@ class RouteBuilderTest extends TestCase
     public function testPrefix()
     {
         $routes = new RouteBuilder($this->collection, '/path', ['key' => 'value']);
+        $res = $routes->prefix('admin', ['param' => 'value'], function ($r) {
+            $this->assertInstanceOf(RouteBuilder::class, $r);
+            $this->assertCount(0, $this->collection->routes());
+            $this->assertEquals('/path/admin', $r->path());
+            $this->assertEquals(['prefix' => 'admin', 'key' => 'value', 'param' => 'value'], $r->params());
+        });
+        $this->assertNull($res);
+    }
+
+    /**
+     * Test creating sub-scopes with prefix()
+     *
+     * @return void
+     */
+    public function testPrefixWithNoParams()
+    {
+        $routes = new RouteBuilder($this->collection, '/path', ['key' => 'value']);
         $res = $routes->prefix('admin', function ($r) {
-            $this->assertInstanceOf('Cake\Routing\RouteBuilder', $r);
+            $this->assertInstanceOf(RouteBuilder::class, $r);
             $this->assertCount(0, $this->collection->routes());
             $this->assertEquals('/path/admin', $r->path());
             $this->assertEquals(['prefix' => 'admin', 'key' => 'value'], $r->params());
@@ -301,9 +368,31 @@ class RouteBuilderTest extends TestCase
     public function testNestedPrefix()
     {
         $routes = new RouteBuilder($this->collection, '/admin', ['prefix' => 'admin']);
-        $res = $routes->prefix('api', function ($r) {
+        $res = $routes->prefix('api', ['_namePrefix' => 'api:'], function ($r) {
             $this->assertEquals('/admin/api', $r->path());
             $this->assertEquals(['prefix' => 'admin/api'], $r->params());
+            $this->assertEquals('api:', $r->namePrefix());
+        });
+        $this->assertNull($res);
+    }
+
+    /**
+     * Test creating sub-scopes with prefix()
+     *
+     * @return void
+     */
+    public function testPathWithDotInPrefix()
+    {
+        $routes = new RouteBuilder($this->collection, '/admin', ['prefix' => 'admin']);
+        $res = $routes->prefix('api', function ($r) {
+            $r->prefix('v10', ['path' => '/v1.0'], function ($r2) {
+                $this->assertEquals('/admin/api/v1.0', $r2->path());
+                $this->assertEquals(['prefix' => 'admin/api/v10'], $r2->params());
+                $r2->prefix('b1', ['path' => '/beta.1'], function ($r3) {
+                    $this->assertEquals('/admin/api/v1.0/beta.1', $r3->path());
+                    $this->assertEquals(['prefix' => 'admin/api/v10/b1'], $r3->params());
+                });
+            });
         });
         $this->assertNull($res);
     }
@@ -364,6 +453,61 @@ class RouteBuilderTest extends TestCase
         );
         $this->assertEquals('json', $all[0]->options['_ext']);
         $this->assertEquals('Articles', $all[0]->defaults['controller']);
+    }
+
+    /**
+     * Test connecting resources with a path
+     *
+     * @return void
+     */
+    public function testResourcesPathOption()
+    {
+        $routes = new RouteBuilder($this->collection, '/api');
+        $routes->resources('Articles', ['path' => 'posts'], function ($routes) {
+            $routes->resources('Comments');
+        });
+        $all = $this->collection->routes();
+        $this->assertEquals('Articles', $all[0]->defaults['controller']);
+        $this->assertEquals('/api/posts', $all[0]->template);
+        $this->assertEquals('/api/posts/:id', $all[2]->template);
+        $this->assertEquals(
+            '/api/posts/:article_id/comments',
+            $all[6]->template,
+            'parameter name should reflect resource name'
+        );
+    }
+
+    /**
+     * Test connecting resources with a prefix
+     *
+     * @return void
+     */
+    public function testResourcesPrefix()
+    {
+        $routes = new RouteBuilder($this->collection, '/api');
+        $routes->resources('Articles', ['prefix' => 'rest']);
+        $all = $this->collection->routes();
+        $this->assertEquals('rest', $all[0]->defaults['prefix']);
+    }
+
+    /**
+     * Test that resource prefixes work within a prefixed scope.
+     *
+     * @return void
+     */
+    public function testResourcesNestedPrefix()
+    {
+        $routes = new RouteBuilder($this->collection, '/api', ['prefix' => 'api']);
+        $routes->resources('Articles', ['prefix' => 'rest']);
+
+        $all = $this->collection->routes();
+        $this->assertCount(5, $all);
+
+        $this->assertEquals('/api/articles', $all[0]->template);
+        foreach ($all as $route) {
+            $this->assertEquals('api/rest', $route->defaults['prefix']);
+            $this->assertEquals('Articles', $route->defaults['controller']);
+        }
     }
 
     /**
@@ -455,7 +599,7 @@ class RouteBuilderTest extends TestCase
     public function testResourcesInScope()
     {
         Router::scope('/api', ['prefix' => 'api'], function ($routes) {
-            $routes->extensions(['json']);
+            $routes->setExtensions(['json']);
             $routes->resources('Articles');
         });
         $url = Router::url([
@@ -607,7 +751,7 @@ class RouteBuilderTest extends TestCase
         $all = $this->collection->routes();
         $this->assertEquals('/api/:controller', $all[0]->template);
         $this->assertEquals('/api/:controller/:action/*', $all[1]->template);
-        $this->assertInstanceOf('Cake\Routing\Route\Route', $all[0]);
+        $this->assertInstanceOf(Route::class, $all[0]);
     }
 
     /**
@@ -623,7 +767,7 @@ class RouteBuilderTest extends TestCase
         $all = $this->collection->routes();
         $this->assertEquals('/api/:controller', $all[0]->template);
         $this->assertEquals('/api/:controller/:action/*', $all[1]->template);
-        $this->assertInstanceOf('Cake\Routing\Route\InflectedRoute', $all[0]);
+        $this->assertInstanceOf(InflectedRoute::class, $all[0]);
     }
 
     /**
@@ -634,7 +778,7 @@ class RouteBuilderTest extends TestCase
     public function testDefaultRouteClassFallbacks()
     {
         $routes = new RouteBuilder($this->collection, '/api', ['prefix' => 'api']);
-        $routes->routeClass('TestApp\Routing\Route\DashedRoute');
+        $routes->setRouteClass('TestApp\Routing\Route\DashedRoute');
         $routes->fallbacks();
 
         $all = $this->collection->routes();
@@ -653,9 +797,23 @@ class RouteBuilderTest extends TestCase
             $this->assertEquals('/api/v1', $routes->path());
             $this->assertEquals(['prefix' => 'api', 'version' => 1], $routes->params());
         });
+    }
 
-        $routes = new RouteBuilder($this->collection, '/api', ['prefix' => 'api']);
+    /**
+     * Test that nested scopes inherit middleware.
+     *
+     * @return void
+     */
+    public function testScopeInheritMiddleware()
+    {
+        $routes = new RouteBuilder(
+            $this->collection,
+            '/api',
+            ['prefix' => 'api'],
+            ['middleware' => ['auth']]
+        );
         $routes->scope('/v1', function ($routes) {
+            $this->assertAttributeEquals(['auth'], 'middleware', $routes, 'Should inherit middleware');
             $this->assertEquals('/api/v1', $routes->path());
             $this->assertEquals(['prefix' => 'api'], $routes->params());
         });
@@ -680,5 +838,270 @@ class RouteBuilderTest extends TestCase
         $all = $this->collection->named();
         $this->assertArrayHasKey('api:v1:ping', $all);
         $this->assertArrayHasKey('web:pong', $all);
+    }
+
+    /**
+     * Test adding middleware to the collection.
+     *
+     * @return void
+     */
+    public function testRegisterMiddleware()
+    {
+        $func = function () {
+        };
+        $routes = new RouteBuilder($this->collection, '/api');
+        $result = $routes->registerMiddleware('test', $func);
+
+        $this->assertSame($result, $routes);
+        $this->assertTrue($this->collection->hasMiddleware('test'));
+        $this->assertTrue($this->collection->middlewareExists('test'));
+    }
+
+    /**
+     * Test registering invalid middleware
+     *
+     * @expectedException \RuntimeException
+     * @expectedExceptionMessage The 'bad' middleware is not a callable object.
+     * @return void
+     */
+    public function testRegisterMiddlewareString()
+    {
+        $routes = new RouteBuilder($this->collection, '/api');
+        $routes->registerMiddleware('bad', 'strlen');
+    }
+
+    /**
+     * Test middleware group
+     *
+     * @return void
+     */
+    public function testMiddlewareGroup()
+    {
+        $func = function () {
+        };
+        $routes = new RouteBuilder($this->collection, '/api');
+        $routes->registerMiddleware('test', $func);
+        $routes->registerMiddleware('test_two', $func);
+        $result = $routes->middlewareGroup('group', ['test', 'test_two']);
+
+        $this->assertSame($result, $routes);
+        $this->assertTrue($this->collection->hasMiddlewareGroup('group'));
+        $this->assertTrue($this->collection->middlewareExists('group'));
+    }
+
+    /**
+     * Test overlap between middleware name and group name
+     *
+     * @expectedException \RuntimeException
+     * @expectedExceptionMessage Cannot add middleware group 'test'. A middleware by this name has already been registered.
+     * @return void
+     */
+    public function testMiddlewareGroupOverlap()
+    {
+        $func = function () {
+        };
+        $routes = new RouteBuilder($this->collection, '/api');
+        $routes->registerMiddleware('test', $func);
+        $result = $routes->middlewareGroup('test', ['test']);
+    }
+
+    /**
+     * Test applying middleware to a scope when it doesn't exist
+     *
+     * @expectedException \RuntimeException
+     * @expectedExceptionMessage Cannot apply 'bad' middleware or middleware group. Use registerMiddleware() to register middleware
+     * @return void
+     */
+    public function testApplyMiddlewareInvalidName()
+    {
+        $routes = new RouteBuilder($this->collection, '/api');
+        $routes->applyMiddleware('bad');
+    }
+
+    /**
+     * Test applying middleware to a scope
+     *
+     * @return void
+     */
+    public function testApplyMiddleware()
+    {
+        $func = function () {
+        };
+        $routes = new RouteBuilder($this->collection, '/api');
+        $routes->registerMiddleware('test', $func)
+            ->registerMiddleware('test2', $func);
+        $result = $routes->applyMiddleware('test', 'test2');
+
+        $this->assertSame($result, $routes);
+    }
+
+    /**
+     * Test that applyMiddleware() merges with previous data.
+     *
+     * @return void
+     */
+    public function testApplyMiddlewareMerges()
+    {
+        $func = function () {
+        };
+        $routes = new RouteBuilder($this->collection, '/api');
+        $routes->registerMiddleware('test', $func)
+            ->registerMiddleware('test2', $func);
+        $routes->applyMiddleware('test');
+        $routes->applyMiddleware('test2');
+
+        $this->assertAttributeEquals(['test', 'test2'], 'middleware', $routes);
+    }
+
+    /**
+     * Test applying middleware results in middleware attached to the route.
+     *
+     * @return void
+     */
+    public function testApplyMiddlewareAttachToRoutes()
+    {
+        $func = function () {
+        };
+        $routes = new RouteBuilder($this->collection, '/api');
+        $routes->registerMiddleware('test', $func)
+            ->registerMiddleware('test2', $func);
+        $routes->applyMiddleware('test', 'test2');
+        $route = $routes->get('/docs', ['controller' => 'Docs']);
+
+        $this->assertSame(['test', 'test2'], $route->getMiddleware());
+    }
+
+    /**
+     * @return array
+     */
+    public static function httpMethodProvider()
+    {
+        return [
+            ['GET'],
+            ['POST'],
+            ['PUT'],
+            ['PATCH'],
+            ['DELETE'],
+            ['OPTIONS'],
+            ['HEAD'],
+        ];
+    }
+
+    /**
+     * Test that the HTTP method helpers create the right kind of routes.
+     *
+     * @dataProvider httpMethodProvider
+     * @return void
+     */
+    public function testHttpMethods($method)
+    {
+        $routes = new RouteBuilder($this->collection, '/', [], ['namePrefix' => 'app:']);
+        $route = $routes->{strtolower($method)}(
+            '/bookmarks/:id',
+            ['controller' => 'Bookmarks', 'action' => 'view'],
+            'route-name'
+        );
+        $this->assertInstanceOf(Route::class, $route, 'Should return a route');
+        $this->assertSame($method, $route->defaults['_method']);
+        $this->assertSame('app:route-name', $route->options['_name']);
+        $this->assertSame('/bookmarks/:id', $route->template);
+        $this->assertEquals(
+            ['plugin' => null, 'controller' => 'Bookmarks', 'action' => 'view', '_method' => $method],
+            $route->defaults
+        );
+    }
+
+    /**
+     * Integration test for http method helpers and route fluent method
+     *
+     * @return void
+     */
+    public function testHttpMethodIntegration()
+    {
+        $routes = new RouteBuilder($this->collection, '/');
+        $routes->scope('/', function ($routes) {
+            $routes->get('/faq/:page', ['controller' => 'Pages', 'action' => 'faq'], 'faq')
+                ->setPatterns(['page' => '[a-z0-9_]+'])
+                ->setHost('docs.example.com');
+
+            $routes->post('/articles/:id', ['controller' => 'Articles', 'action' => 'update'], 'article:update')
+                ->setPatterns(['id' => '[0-9]+'])
+                ->setPass(['id']);
+        });
+        $this->assertCount(2, $this->collection->routes());
+        $this->assertEquals(['faq', 'article:update'], array_keys($this->collection->named()));
+        $this->assertNotEmpty($this->collection->parse('/faq/things_you_know', 'GET'));
+        $result = $this->collection->parse('/articles/123', 'POST');
+        $this->assertEquals(['123'], $result['pass']);
+    }
+
+    /**
+     * Test loading routes from a missing plugin
+     *
+     * @expectedException Cake\Core\Exception\MissingPluginException
+     * @return void
+     */
+    public function testLoadPluginBadPlugin()
+    {
+        $routes = new RouteBuilder($this->collection, '/');
+        $routes->loadPlugin('Nope');
+    }
+
+    /**
+     * Test loading routes from a missing file
+     *
+     * @expectedException InvalidArgumentException
+     * @expectedExceptionMessage Cannot load routes for the plugin named TestPlugin.
+     * @return void
+     */
+    public function testLoadPluginBadFile()
+    {
+        Plugin::load('TestPlugin');
+        $routes = new RouteBuilder($this->collection, '/');
+        $routes->loadPlugin('TestPlugin', 'nope.php');
+    }
+
+    /**
+     * Test loading routes with success
+     *
+     * @return void
+     */
+    public function testLoadPlugin()
+    {
+        Plugin::load('TestPlugin');
+        $routes = new RouteBuilder($this->collection, '/');
+        $routes->loadPlugin('TestPlugin');
+        $this->assertCount(1, $this->collection->routes());
+        $this->assertNotEmpty($this->collection->parse('/test_plugin', 'GET'));
+    }
+
+    /**
+     * Test routeClass() still works.
+     *
+     * @return void
+     */
+    public function testRouteClassBackwardCompat()
+    {
+        $routes = new RouteBuilder($this->collection, '/l');
+        $this->assertNull($routes->routeClass('TestApp\Routing\Route\DashedRoute'));
+        $this->assertSame('TestApp\Routing\Route\DashedRoute', $routes->routeClass());
+        $this->assertSame('TestApp\Routing\Route\DashedRoute', $routes->getRouteClass());
+    }
+
+    /**
+     * Test extensions() still works.
+     *
+     * @return void
+     */
+    public function testExtensionsBackwardCompat()
+    {
+        $routes = new RouteBuilder($this->collection, '/l');
+        $this->assertNull($routes->extensions(['html']));
+        $this->assertSame(['html'], $routes->extensions());
+        $this->assertSame(['html'], $routes->getExtensions());
+
+        $this->assertNull($routes->extensions('json'));
+        $this->assertSame(['json'], $routes->extensions());
+        $this->assertSame(['json'], $routes->getExtensions());
     }
 }

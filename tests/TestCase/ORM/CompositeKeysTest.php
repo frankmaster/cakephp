@@ -1,19 +1,21 @@
 <?php
 /**
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
  * @since         3.0.0
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 namespace Cake\Test\TestCase\ORM;
 
+use Cake\Database\Driver\Sqlite;
+use Cake\Database\Driver\Sqlserver;
 use Cake\Datasource\ConnectionManager;
 use Cake\ORM\Entity;
 use Cake\ORM\Marshaller;
@@ -21,6 +23,7 @@ use Cake\ORM\Query;
 use Cake\ORM\Table;
 use Cake\ORM\TableRegistry;
 use Cake\TestSuite\TestCase;
+use PDO;
 
 /**
  * Test entity for mass assignment.
@@ -34,7 +37,7 @@ class OpenArticleEntity extends Entity
 }
 
 /**
- * Integration tetss for table operations involving composite keys
+ * Integration tests for table operations involving composite keys
  */
 class CompositeKeyTest extends TestCase
 {
@@ -302,7 +305,7 @@ class CompositeKeyTest extends TestCase
     }
 
     /**
-     * Tests loding belongsTo with composite keys
+     * Tests loading belongsTo with composite keys
      *
      * @dataProvider strategiesProviderBelongsTo
      * @return void
@@ -351,7 +354,7 @@ class CompositeKeyTest extends TestCase
     }
 
     /**
-     * Tests loding hasOne with composite keys
+     * Tests loading hasOne with composite keys
      *
      * @dataProvider strategiesProviderHasOne
      * @return void
@@ -409,7 +412,7 @@ class CompositeKeyTest extends TestCase
      */
     public function testSaveNewEntity()
     {
-        $entity = new \Cake\ORM\Entity([
+        $entity = new Entity([
             'id' => 5,
             'site_id' => 1,
             'title' => 'Fifth Article',
@@ -435,7 +438,7 @@ class CompositeKeyTest extends TestCase
      */
     public function testSaveNewEntityMissingKey()
     {
-        $entity = new \Cake\ORM\Entity([
+        $entity = new Entity([
             'id' => 5,
             'title' => 'Fifth Article',
             'body' => 'Fifth Article Body',
@@ -453,7 +456,7 @@ class CompositeKeyTest extends TestCase
     public function testDelete()
     {
         $table = TableRegistry::get('SiteAuthors');
-        $table->save(new \Cake\ORM\Entity(['id' => 1, 'site_id' => 2]));
+        $table->save(new Entity(['id' => 1, 'site_id' => 2]));
         $entity = $table->get([1, 1]);
         $result = $table->delete($entity);
         $this->assertTrue($result);
@@ -588,11 +591,10 @@ class CompositeKeyTest extends TestCase
     public function testFindThreadedCompositeKeys()
     {
         $table = TableRegistry::get('SiteAuthors');
-        $query = $this->getMock(
-            '\Cake\ORM\Query',
-            ['_addDefaultFields', 'execute'],
-            [null, $table]
-        );
+        $query = $this->getMockBuilder('\Cake\ORM\Query')
+            ->setMethods(['_addDefaultFields', 'execute'])
+            ->setConstructorArgs([null, $table])
+            ->getMock();
 
         $items = new \Cake\Datasource\ResultSetDecorator([
             ['id' => 1, 'name' => 'a', 'site_id' => 1, 'parent_id' => null],
@@ -673,7 +675,7 @@ class CompositeKeyTest extends TestCase
     }
 
     /**
-     * Tets that loadInto() is capable of handling composite primary keys
+     * Tests that loadInto() is capable of handling composite primary keys
      *
      * @return void
      */
@@ -695,8 +697,8 @@ class CompositeKeyTest extends TestCase
     }
 
     /**
-     * Tets that loadInto() is capable of handling composite primary keys
-     * when loading belongsTo assocaitions
+     * Tests that loadInto() is capable of handling composite primary keys
+     * when loading belongsTo associations
      *
      * @return void
      */
@@ -717,7 +719,7 @@ class CompositeKeyTest extends TestCase
     }
 
     /**
-     * Tets that loadInto() is capable of handling composite primary keys
+     * Tests that loadInto() is capable of handling composite primary keys
      * when loading into multiple entities
      *
      * @return void
@@ -742,6 +744,49 @@ class CompositeKeyTest extends TestCase
     }
 
     /**
+     * Tests notMatching() with a belongsToMany association
+     *
+     * @return void
+     */
+    public function testNotMatchingBelongsToMany()
+    {
+        $driver = $this->connection->driver();
+
+        if ($driver instanceof Sqlserver) {
+            $this->markTestSkipped('Sqlserver does not support the requirements of this test.');
+        } elseif ($driver instanceof Sqlite) {
+            $serverVersion = $driver->connection()->getAttribute(PDO::ATTR_SERVER_VERSION);
+            if (version_compare($serverVersion, '3.15.0', '<')) {
+                $this->markTestSkipped("Sqlite ($serverVersion) does not support the requirements of this test.");
+            }
+        }
+
+        $articles = TableRegistry::get('SiteArticles');
+        $articles->belongsToMany('SiteTags', [
+            'through' => 'SiteArticlesTags',
+            'foreignKey' => ['article_id', 'site_id'],
+            'targetForeignKey' => ['tag_id', 'site_id']
+        ]);
+
+        $results = $articles->find()
+            ->hydrate(false)
+            ->notMatching('SiteTags')
+            ->toArray();
+
+        $expected = [
+            [
+                'id' => 3,
+                'author_id' => 1,
+                'site_id' => 2,
+                'title' => 'Third Article',
+                'body' => 'Third Article Body',
+            ],
+        ];
+
+        $this->assertEquals($expected, $results);
+    }
+
+    /**
      * Helper method to skip tests when connection is SQLite.
      *
      * @return void
@@ -749,8 +794,8 @@ class CompositeKeyTest extends TestCase
     public function skipIfSqlite()
     {
         $this->skipIf(
-            $this->connection->driver() instanceof \Cake\Database\Driver\Sqlite,
-            'SQLite does not support the requrirements of this test.'
+            $this->connection->driver() instanceof Sqlite,
+            'SQLite does not support the requirements of this test.'
         );
     }
 }

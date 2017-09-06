@@ -1,16 +1,16 @@
 <?php
 /**
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
  * @since         3.0.0
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 namespace Cake\Test\TestCase\ORM;
 
@@ -32,7 +32,7 @@ class EntityTest extends TestCase
      */
     public function testSetOneParamNoSetters()
     {
-        $entity = new Entity;
+        $entity = new Entity();
         $this->assertNull($entity->getOriginal('foo'));
         $entity->set('foo', 'bar');
         $this->assertEquals('bar', $entity->foo);
@@ -55,7 +55,7 @@ class EntityTest extends TestCase
      */
     public function testSetMultiplePropertiesNoSetters()
     {
-        $entity = new Entity;
+        $entity = new Entity();
         $entity->accessible('*', true);
 
         $entity->set(['foo' => 'bar', 'id' => 1]);
@@ -132,17 +132,44 @@ class EntityTest extends TestCase
     }
 
     /**
+     * Test that all original values are returned properly
+     *
+     * @return void
+     */
+    public function testExtractOriginalValues()
+    {
+        $entity = new Entity([
+            'id' => 1,
+            'title' => 'original',
+            'body' => 'no',
+            'null' => null,
+        ], ['markNew' => true]);
+        $entity->set('body', 'updated body');
+        $result = $entity->getOriginalValues();
+        $expected = [
+            'id' => 1,
+            'title' => 'original',
+            'body' => 'no',
+            'null' => null,
+        ];
+        $this->assertEquals($expected, $result);
+    }
+
+    /**
      * Tests setting a single property using a setter function
      *
      * @return void
      */
     public function testSetOneParamWithSetter()
     {
-        $entity = $this->getMock('\Cake\ORM\Entity', ['_setName']);
+        $entity = $this->getMockBuilder('\Cake\ORM\Entity')
+            ->setMethods(['_setName'])
+            ->getMock();
         $entity->expects($this->once())->method('_setName')
             ->with('Jones')
             ->will($this->returnCallback(function ($name) {
                 $this->assertEquals('Jones', $name);
+
                 return 'Dr. ' . $name;
             }));
         $entity->set('name', 'Jones');
@@ -156,18 +183,22 @@ class EntityTest extends TestCase
      */
     public function testMultipleWithSetter()
     {
-        $entity = $this->getMock('\Cake\ORM\Entity', ['_setName', '_setStuff']);
+        $entity = $this->getMockBuilder('\Cake\ORM\Entity')
+            ->setMethods(['_setName', '_setStuff'])
+            ->getMock();
         $entity->accessible('*', true);
         $entity->expects($this->once())->method('_setName')
             ->with('Jones')
             ->will($this->returnCallback(function ($name) {
                 $this->assertEquals('Jones', $name);
+
                 return 'Dr. ' . $name;
             }));
         $entity->expects($this->once())->method('_setStuff')
             ->with(['a', 'b'])
             ->will($this->returnCallback(function ($stuff) {
                 $this->assertEquals(['a', 'b'], $stuff);
+
                 return ['c', 'd'];
             }));
         $entity->set(['name' => 'Jones', 'stuff' => ['a', 'b']]);
@@ -182,7 +213,9 @@ class EntityTest extends TestCase
      */
     public function testBypassSetters()
     {
-        $entity = $this->getMock('\Cake\ORM\Entity', ['_setName', '_setStuff']);
+        $entity = $this->getMockBuilder('\Cake\ORM\Entity')
+            ->setMethods(['_setName', '_setStuff'])
+            ->getMock();
         $entity->accessible('*', true);
 
         $entity->expects($this->never())->method('_setName');
@@ -258,7 +291,9 @@ class EntityTest extends TestCase
      */
     public function testGetCustomGetters()
     {
-        $entity = $this->getMock('\Cake\ORM\Entity', ['_getName']);
+        $entity = $this->getMockBuilder('\Cake\ORM\Entity')
+            ->setMethods(['_getName'])
+            ->getMock();
         $entity->expects($this->any())
             ->method('_getName')
             ->with('Jones')
@@ -277,7 +312,9 @@ class EntityTest extends TestCase
      */
     public function testGetCustomGettersAfterSet()
     {
-        $entity = $this->getMock('\Cake\ORM\Entity', ['_getName']);
+        $entity = $this->getMockBuilder('\Cake\ORM\Entity')
+            ->setMethods(['_getName'])
+            ->getMock();
         $entity->expects($this->any())
             ->method('_getName')
             ->will($this->returnCallback(function ($name) {
@@ -299,7 +336,9 @@ class EntityTest extends TestCase
      */
     public function testGetCacheClearedByUnset()
     {
-        $entity = $this->getMock('\Cake\ORM\Entity', ['_getName']);
+        $entity = $this->getMockBuilder('\Cake\ORM\Entity')
+            ->setMethods(['_getName'])
+            ->getMock();
         $entity->expects($this->any())->method('_getName')
             ->will($this->returnCallback(function ($name) {
                 return 'Dr. ' . $name;
@@ -318,7 +357,9 @@ class EntityTest extends TestCase
      */
     public function testGetCamelCasedProperties()
     {
-        $entity = $this->getMock('\Cake\ORM\Entity', ['_getListIdName']);
+        $entity = $this->getMockBuilder('\Cake\ORM\Entity')
+            ->setMethods(['_getListIdName'])
+            ->getMock();
         $entity->expects($this->any())->method('_getListIdName')
             ->will($this->returnCallback(function ($name) {
                 return 'A name';
@@ -335,7 +376,7 @@ class EntityTest extends TestCase
      */
     public function testMagicSet()
     {
-        $entity = new Entity;
+        $entity = new Entity();
         $entity->name = 'Jones';
         $this->assertEquals('Jones', $entity->name);
         $entity->name = 'George';
@@ -349,11 +390,14 @@ class EntityTest extends TestCase
      */
     public function testMagicSetWithSetter()
     {
-        $entity = $this->getMock('\Cake\ORM\Entity', ['_setName']);
+        $entity = $this->getMockBuilder('\Cake\ORM\Entity')
+            ->setMethods(['_setName'])
+            ->getMock();
         $entity->expects($this->once())->method('_setName')
             ->with('Jones')
             ->will($this->returnCallback(function ($name) {
                 $this->assertEquals('Jones', $name);
+
                 return 'Dr. ' . $name;
             }));
         $entity->name = 'Jones';
@@ -367,7 +411,9 @@ class EntityTest extends TestCase
      */
     public function testMagicSetWithSetterTitleCase()
     {
-        $entity = $this->getMock('\Cake\ORM\Entity', ['_setName']);
+        $entity = $this->getMockBuilder('\Cake\ORM\Entity')
+            ->setMethods(['_setName'])
+            ->getMock();
         $entity->expects($this->once())
             ->method('_setName')
             ->with('Jones')
@@ -387,11 +433,14 @@ class EntityTest extends TestCase
      */
     public function testMagicGetWithGetter()
     {
-        $entity = $this->getMock('\Cake\ORM\Entity', ['_getName']);
+        $entity = $this->getMockBuilder('\Cake\ORM\Entity')
+            ->setMethods(['_getName'])
+            ->getMock();
         $entity->expects($this->once())->method('_getName')
             ->with('Jones')
             ->will($this->returnCallback(function ($name) {
                 $this->assertSame('Jones', $name);
+
                 return 'Dr. ' . $name;
             }));
         $entity->set('name', 'Jones');
@@ -405,7 +454,9 @@ class EntityTest extends TestCase
      */
     public function testMagicGetWithGetterTitleCase()
     {
-        $entity = $this->getMock('\Cake\ORM\Entity', ['_getName']);
+        $entity = $this->getMockBuilder('\Cake\ORM\Entity')
+            ->setMethods(['_getName'])
+            ->getMock();
         $entity->expects($this->once())
             ->method('_getName')
             ->with('Jones')
@@ -425,7 +476,7 @@ class EntityTest extends TestCase
      */
     public function testIndirectModification()
     {
-        $entity = new Entity;
+        $entity = new Entity();
         $entity->things = ['a', 'b'];
         $entity->things[] = 'c';
         $this->assertEquals(['a', 'b', 'c'], $entity->things);
@@ -449,7 +500,9 @@ class EntityTest extends TestCase
         $this->assertFalse($entity->has(['id', 'foo']));
         $this->assertFalse($entity->has(['id', 'nope']));
 
-        $entity = $this->getMock('\Cake\ORM\Entity', ['_getThings']);
+        $entity = $this->getMockBuilder('\Cake\ORM\Entity')
+            ->setMethods(['_getThings'])
+            ->getMock();
         $entity->expects($this->once())->method('_getThings')
             ->will($this->returnValue(0));
         $this->assertTrue($entity->has('things'));
@@ -478,13 +531,13 @@ class EntityTest extends TestCase
     public function testUnsetMakesClean()
     {
         $entity = new Entity(['id' => 1, 'name' => 'bar']);
-        $this->assertTrue($entity->dirty('name'));
+        $this->assertTrue($entity->isDirty('name'));
         $entity->unsetProperty('name');
-        $this->assertFalse($entity->dirty('name'), 'Removed properties are not dirty.');
+        $this->assertFalse($entity->isDirty('name'), 'Removed properties are not dirty.');
     }
 
     /**
-     * Tests unsetProperty whith multiple properties
+     * Tests unsetProperty with multiple properties
      *
      * @return void
      */
@@ -518,7 +571,9 @@ class EntityTest extends TestCase
      */
     public function testMagicUnset()
     {
-        $entity = $this->getMock('\Cake\ORM\Entity', ['unsetProperty']);
+        $entity = $this->getMockBuilder('\Cake\ORM\Entity')
+            ->setMethods(['unsetProperty'])
+            ->getMock();
         $entity->expects($this->at(0))
             ->method('unsetProperty')
             ->with('foo');
@@ -546,7 +601,9 @@ class EntityTest extends TestCase
      */
     public function testGetArrayAccess()
     {
-        $entity = $this->getMock('\Cake\ORM\Entity', ['get']);
+        $entity = $this->getMockBuilder('\Cake\ORM\Entity')
+            ->setMethods(['get'])
+            ->getMock();
         $entity->expects($this->at(0))
             ->method('get')
             ->with('foo')
@@ -568,7 +625,9 @@ class EntityTest extends TestCase
      */
     public function testSetArrayAccess()
     {
-        $entity = $this->getMock('\Cake\ORM\Entity', ['set']);
+        $entity = $this->getMockBuilder('\Cake\ORM\Entity')
+            ->setMethods(['set'])
+            ->getMock();
         $entity->accessible('*', true);
 
         $entity->expects($this->at(0))
@@ -592,7 +651,9 @@ class EntityTest extends TestCase
      */
     public function testUnsetArrayAccess()
     {
-        $entity = $this->getMock('\Cake\ORM\Entity', ['unsetProperty']);
+        $entity = $this->getMockBuilder('\Cake\ORM\Entity')
+            ->setMethods(['unsetProperty'])
+            ->getMock();
         $entity->expects($this->at(0))
             ->method('unsetProperty')
             ->with('foo');
@@ -608,8 +669,12 @@ class EntityTest extends TestCase
      */
     public function testMethodCache()
     {
-        $entity = $this->getMock('\Cake\ORM\Entity', ['_setFoo', '_getBar']);
-        $entity2 = $this->getMock('\Cake\ORM\Entity', ['_setBar']);
+        $entity = $this->getMockBuilder('\Cake\ORM\Entity')
+            ->setMethods(['_setFoo', '_getBar'])
+            ->getMock();
+        $entity2 = $this->getMockBuilder('\Cake\ORM\Entity')
+            ->setMethods(['_setBar'])
+            ->getMock();
         $entity->expects($this->once())->method('_setFoo');
         $entity->expects($this->once())->method('_getBar');
         $entity2->expects($this->once())->method('_setBar');
@@ -624,9 +689,11 @@ class EntityTest extends TestCase
      *
      * @return void
      */
-    public function testSetGetLongProperyNames()
+    public function testSetGetLongPropertyNames()
     {
-        $entity = $this->getMock('\Cake\ORM\Entity', ['_getVeryLongProperty', '_setVeryLongProperty']);
+        $entity = $this->getMockBUilder('\Cake\ORM\Entity')
+            ->setMethods(['_getVeryLongProperty', '_setVeryLongProperty'])
+            ->getMock();
         $entity->expects($this->once())->method('_getVeryLongProperty');
         $entity->expects($this->once())->method('_setVeryLongProperty');
         $entity->get('very_long_property');
@@ -643,6 +710,37 @@ class EntityTest extends TestCase
         $data = ['name' => 'James', 'age' => 20, 'phones' => ['123', '457']];
         $entity = new Entity($data);
         $this->assertEquals(json_encode($data), json_encode($entity));
+    }
+
+    /**
+     * Tests serializing an entity as PHP
+     *
+     * @return void
+     */
+    public function testPhpSerialize()
+    {
+        $data = ['name' => 'James', 'age' => 20, 'phones' => ['123', '457']];
+        $entity = new Entity($data);
+        $copy = unserialize(serialize($entity));
+        $this->assertInstanceOf(Entity::class, $copy);
+        $this->assertEquals($data, $copy->toArray());
+    }
+
+    /**
+     * Tests that jsonSerialize is called recursively for contained entities
+     *
+     * @return void
+     */
+    public function testJsonSerializeRecursive()
+    {
+        $phone = $this->getMockBuilder(Entity::class)
+            ->setMethods(['jsonSerialize'])
+            ->getMock();
+        $phone->expects($this->once())->method('jsonSerialize')->will($this->returnValue('12345'));
+        $data = ['name' => 'James', 'age' => 20, 'phone' => $phone];
+        $entity = new Entity($data);
+        $expected = ['name' => 'James', 'age' => 20, 'phone' => '12345'];
+        $this->assertEquals(json_encode($expected), json_encode($entity));
     }
 
     /**
@@ -666,16 +764,16 @@ class EntityTest extends TestCase
         $expected = [];
         $this->assertEquals($expected, $entity->extract([]));
 
-        $expected = ['id' => 1, 'crazyness' => null];
-        $this->assertEquals($expected, $entity->extract(['id', 'crazyness']));
+        $expected = ['id' => 1, 'craziness' => null];
+        $this->assertEquals($expected, $entity->extract(['id', 'craziness']));
     }
 
     /**
-     * Tests dirty() method on a newly created object
+     * Tests isDirty() method on a newly created object
      *
      * @return void
      */
-    public function testDirty()
+    public function testIsDirty()
     {
         $entity = new Entity([
             'id' => 1,
@@ -683,19 +781,45 @@ class EntityTest extends TestCase
             'author_id' => 3
         ]);
         $this->assertTrue($entity->dirty('id'));
-        $this->assertTrue($entity->dirty('title'));
-        $this->assertTrue($entity->dirty('author_id'));
+        $this->assertTrue($entity->isDirty('id'));
+        $this->assertTrue($entity->isDirty('title'));
+        $this->assertTrue($entity->isDirty('author_id'));
 
         $this->assertTrue($entity->dirty());
+        $this->assertTrue($entity->isDirty());
 
         $entity->dirty('id', false);
         $this->assertFalse($entity->dirty('id'));
         $this->assertTrue($entity->dirty('title'));
-        $entity->dirty('title', false);
-        $this->assertFalse($entity->dirty('title'));
-        $this->assertTrue($entity->dirty());
-        $entity->dirty('author_id', false);
-        $this->assertFalse($entity->dirty());
+
+        $entity->setDirty('title', false);
+        $this->assertFalse($entity->isDirty('title'));
+        $this->assertTrue($entity->isDirty(), 'should be dirty, one field left');
+
+        $entity->setDirty('author_id', false);
+        $this->assertFalse($entity->isDirty(), 'all fields are clean.');
+    }
+
+    /**
+     * Test setDirty().
+     *
+     * @return void
+     */
+    public function testSetDirty()
+    {
+        $entity = new Entity([
+            'id' => 1,
+            'title' => 'Foo',
+            'author_id' => 3
+        ], ['markClean' => true]);
+
+        $this->assertFalse($entity->isDirty());
+        $this->assertSame($entity, $entity->setDirty('title', true));
+        $this->assertSame($entity, $entity->setDirty('id', false));
+
+        $entity->setErrors(['title' => ['badness']]);
+        $entity->setDirty('title', true);
+        $this->assertEmpty($entity->getErrors('title'), 'Making a field dirty clears errors.');
     }
 
     /**
@@ -709,17 +833,17 @@ class EntityTest extends TestCase
             'title' => 'Foo',
         ]);
 
-        $entity->dirty('title', false);
-        $this->assertFalse($entity->dirty('title'));
+        $entity->setDirty('title', false);
+        $this->assertFalse($entity->isDirty('title'));
 
         $entity->set('title', 'Foo');
-        $this->assertTrue($entity->dirty('title'));
+        $this->assertTrue($entity->isDirty('title'));
 
         $entity->set('title', 'Foo');
-        $this->assertTrue($entity->dirty('title'));
+        $this->assertTrue($entity->isDirty('title'));
 
         $entity->set('something', 'else');
-        $this->assertTrue($entity->dirty('something'));
+        $this->assertTrue($entity->isDirty('something'));
     }
 
     /**
@@ -734,11 +858,33 @@ class EntityTest extends TestCase
             'title' => 'Foo',
             'author_id' => 3
         ]);
-        $entity->dirty('id', false);
-        $entity->dirty('title', false);
+        $entity->setDirty('id', false);
+        $entity->setDirty('title', false);
         $expected = ['author_id' => 3];
         $result = $entity->extract(['id', 'title', 'author_id'], true);
         $this->assertEquals($expected, $result);
+    }
+
+    /**
+     * Tests the getDirty method
+     *
+     * @return void
+     */
+    public function testGetDirty()
+    {
+        $entity = new Entity([
+            'id' => 1,
+            'title' => 'Foo',
+            'author_id' => 3
+        ]);
+
+        $expected = [
+            'id',
+            'title',
+            'author_id'
+        ];
+        $result = $entity->getDirty();
+        $this->assertSame($expected, $entity->getDirty());
     }
 
     /**
@@ -753,14 +899,14 @@ class EntityTest extends TestCase
             'title' => 'Foo',
             'author_id' => 3
         ]);
-        $this->assertTrue($entity->dirty('id'));
-        $this->assertTrue($entity->dirty('title'));
-        $this->assertTrue($entity->dirty('author_id'));
+        $this->assertTrue($entity->isDirty('id'));
+        $this->assertTrue($entity->isDirty('title'));
+        $this->assertTrue($entity->isDirty('author_id'));
 
         $entity->clean();
-        $this->assertFalse($entity->dirty('id'));
-        $this->assertFalse($entity->dirty('title'));
-        $this->assertFalse($entity->dirty('author_id'));
+        $this->assertFalse($entity->isDirty('id'));
+        $this->assertFalse($entity->isDirty('title'));
+        $this->assertFalse($entity->isDirty('author_id'));
     }
 
     /**
@@ -906,7 +1052,9 @@ class EntityTest extends TestCase
      */
     public function testToArrayWithAccessor()
     {
-        $entity = $this->getMock('\Cake\ORM\Entity', ['_getName']);
+        $entity = $this->getMockBuilder('\Cake\ORM\Entity')
+            ->setMethods(['_getName'])
+            ->getMock();
         $entity->accessible('*', true);
         $entity->set(['name' => 'Mark', 'email' => 'mark@example.com']);
         $entity->expects($this->any())
@@ -931,13 +1079,59 @@ class EntityTest extends TestCase
     }
 
     /**
+     * Tests setting hidden properties.
+     *
+     * @return void
+     */
+    public function testSetHidden()
+    {
+        $data = ['secret' => 'sauce', 'name' => 'mark', 'id' => 1];
+        $entity = new Entity($data);
+        $entity->setHidden(['secret']);
+
+        $result = $entity->getHidden();
+        $this->assertSame(['secret'], $result);
+
+        $entity->setHidden(['name']);
+
+        $result = $entity->getHidden();
+        $this->assertSame(['name'], $result);
+    }
+
+    /**
+     * Tests setting hidden properties with merging.
+     *
+     * @return void
+     */
+    public function testSetHiddenWithMerge()
+    {
+        $data = ['secret' => 'sauce', 'name' => 'mark', 'id' => 1];
+        $entity = new Entity($data);
+        $entity->setHidden(['secret'], true);
+
+        $result = $entity->getHidden();
+        $this->assertSame(['secret'], $result);
+
+        $entity->setHidden(['name'], true);
+
+        $result = $entity->getHidden();
+        $this->assertSame(['secret', 'name'], $result);
+
+        $entity->setHidden(['name'], true);
+        $result = $entity->getHidden();
+        $this->assertSame(['secret', 'name'], $result);
+    }
+
+    /**
      * Test toArray includes 'virtual' properties.
      *
      * @return void
      */
     public function testToArrayVirtualProperties()
     {
-        $entity = $this->getMock('\Cake\ORM\Entity', ['_getName']);
+        $entity = $this->getMockBuilder('\Cake\ORM\Entity')
+            ->setMethods(['_getName'])
+            ->getMock();
         $entity->accessible('*', true);
 
         $entity->expects($this->any())
@@ -958,20 +1152,44 @@ class EntityTest extends TestCase
     }
 
     /**
+     * Tests setting virtual properties with merging.
+     *
+     * @return void
+     */
+    public function testSetVirtualWithMerge()
+    {
+        $data = ['virtual' => 'sauce', 'name' => 'mark', 'id' => 1];
+        $entity = new Entity($data);
+        $entity->setVirtual(['virtual']);
+
+        $result = $entity->getVirtual();
+        $this->assertSame(['virtual'], $result);
+
+        $entity->setVirtual(['name'], true);
+
+        $result = $entity->getVirtual();
+        $this->assertSame(['virtual', 'name'], $result);
+
+        $entity->setVirtual(['name'], true);
+        $result = $entity->getVirtual();
+        $this->assertSame(['virtual', 'name'], $result);
+    }
+
+    /**
      * Tests the errors method
      *
      * @return void
      */
     public function testErrors()
     {
-        $entity = new Entity;
+        $entity = new Entity();
         $this->assertEmpty($entity->errors());
         $this->assertSame($entity, $entity->errors('foo', 'bar'));
         $this->assertEquals(['bar'], $entity->errors('foo'));
 
         $this->assertEquals([], $entity->errors('boo'));
         $entity['boo'] = [
-            'someting' => 'stupid',
+            'something' => 'stupid',
             'and' => false
         ];
         $this->assertEquals([], $entity->errors('boo'));
@@ -989,6 +1207,26 @@ class EntityTest extends TestCase
         $this->assertSame($entity, $entity->errors($errors, null, true));
         $errors['bar'] = ['else'];
         $this->assertEquals($errors, $entity->errors());
+    }
+
+    /**
+     * Tests error getters and setters
+     *
+     * @return void
+     */
+    public function testGetAndSetErrors()
+    {
+        $entity = new Entity();
+        $this->assertEmpty($entity->getErrors());
+
+        $entity->setError('foo', 'bar');
+        $this->assertEquals(['bar'], $entity->errors('foo'));
+
+        $expected = [
+            'foo' => ['bar']
+        ];
+        $result = $entity->getErrors();
+        $this->assertEquals($expected, $result);
     }
 
     /**
@@ -1101,7 +1339,7 @@ class EntityTest extends TestCase
      */
     public function testAccessible()
     {
-        $entity = new Entity;
+        $entity = new Entity();
         $entity->accessible('*', false);
         $this->assertFalse($entity->accessible('foo'));
         $this->assertFalse($entity->accessible('bar'));
@@ -1130,7 +1368,7 @@ class EntityTest extends TestCase
      */
     public function testAccessibleAsArray()
     {
-        $entity = new Entity;
+        $entity = new Entity();
         $entity->accessible(['foo', 'bar', 'baz'], true);
         $this->assertTrue($entity->accessible('foo'));
         $this->assertTrue($entity->accessible('bar'));
@@ -1148,13 +1386,13 @@ class EntityTest extends TestCase
     }
 
     /**
-     * Tests that a wildcard can be used for setting accesible properties
+     * Tests that a wildcard can be used for setting accessible properties
      *
      * @return void
      */
     public function testAccessibleWildcard()
     {
-        $entity = new Entity;
+        $entity = new Entity();
         $entity->accessible(['foo', 'bar', 'baz'], true);
         $this->assertTrue($entity->accessible('foo'));
         $this->assertTrue($entity->accessible('bar'));
@@ -1257,9 +1495,10 @@ class EntityTest extends TestCase
     {
         $entity = new Entity(['foo' => 'bar'], ['markClean' => true]);
         $entity->somethingElse = 'value';
+        $entity->accessible('id', false);
         $entity->accessible('name', true);
         $entity->virtualProperties(['baz']);
-        $entity->dirty('foo', true);
+        $entity->setDirty('foo', true);
         $entity->errors('foo', ['An error']);
         $entity->invalid('foo', 'a value');
         $entity->source('foos');
@@ -1268,7 +1507,7 @@ class EntityTest extends TestCase
             'foo' => 'bar',
             'somethingElse' => 'value',
             '[new]' => true,
-            '[accessible]' => ['*' => true, 'name' => true],
+            '[accessible]' => ['*' => true, 'id' => false, 'name' => true],
             '[dirty]' => ['somethingElse' => true, 'foo' => true],
             '[original]' => [],
             '[virtual]' => ['baz'],
@@ -1286,10 +1525,21 @@ class EntityTest extends TestCase
      */
     public function testSource()
     {
-        $entity = new Entity;
+        $entity = new Entity();
         $this->assertNull($entity->source());
         $entity->source('foos');
         $this->assertEquals('foos', $entity->source());
+    }
+
+    /**
+     * Test the source getter
+     */
+    public function testGetAndSetSource()
+    {
+        $entity = new Entity();
+        $this->assertNull($entity->getSource());
+        $entity->setSource('foos');
+        $this->assertEquals('foos', $entity->getSource());
     }
 
     /**
@@ -1302,7 +1552,7 @@ class EntityTest extends TestCase
         return [[''], [null], [false]];
     }
     /**
-     * Tests that trying to get an empty propery name throws exception
+     * Tests that trying to get an empty property name throws exception
      *
      * @dataProvider emptyNamesProvider
      * @expectedException \InvalidArgumentException
@@ -1315,7 +1565,7 @@ class EntityTest extends TestCase
     }
 
     /**
-     * Tests that setitng an empty property name does nothing
+     * Tests that setting an empty property name does nothing
      *
      * @expectedException \InvalidArgumentException
      * @dataProvider emptyNamesProvider
@@ -1348,5 +1598,71 @@ class EntityTest extends TestCase
         $this->assertTrue($cloned->dirty());
         $this->assertTrue($cloned->dirty('a'));
         $this->assertTrue($cloned->dirty('b'));
+    }
+
+    /**
+     * Tests getInvalid and setInvalid
+     *
+     * @return void
+     */
+    public function testGetSetInvalid()
+    {
+        $entity = new Entity();
+        $return = $entity->setInvalid([
+            'title' => 'albert',
+            'body' => 'einstein'
+        ]);
+        $this->assertSame($entity, $return);
+        $this->assertSame([
+            'title' => 'albert',
+            'body' => 'einstein'
+        ], $entity->getInvalid());
+
+        $set = $entity->setInvalid([
+            'title' => 'nikola',
+            'body' => 'tesla'
+        ]);
+        $this->assertSame([
+            'title' => 'albert',
+            'body' => 'einstein'
+        ], $set->getInvalid());
+
+        $overwrite = $entity->setInvalid([
+            'title' => 'nikola',
+            'body' => 'tesla'
+        ], true);
+        $this->assertSame($entity, $overwrite);
+        $this->assertSame([
+            'title' => 'nikola',
+            'body' => 'tesla'
+        ], $entity->getInvalid());
+    }
+
+    /**
+     * Tests getInvalidField
+     *
+     * @return void
+     */
+    public function testGetSetInvalidField()
+    {
+        $entity = new Entity();
+        $return = $entity->setInvalidField('title', 'albert');
+        $this->assertSame($entity, $return);
+        $this->assertSame('albert', $entity->getInvalidField('title'));
+
+        $overwrite = $entity->setInvalidField('title', 'nikola');
+        $this->assertSame($entity, $overwrite);
+        $this->assertSame('nikola', $entity->getInvalidField('title'));
+    }
+
+    /**
+     * Tests getInvalidFieldNull
+     *
+     * @return void
+     */
+    public function testGetInvalidFieldNull()
+    {
+        $entity = new Entity();
+        $this->assertNull($entity->getInvalidField('foo'));
     }
 }

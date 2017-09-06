@@ -1,21 +1,21 @@
 <?php
 /**
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
  * @since         3.0.0
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 namespace Cake\Test\TestCase\View\Form;
 
 use Cake\Form\Form;
-use Cake\Network\Request;
+use Cake\Http\ServerRequest;
 use Cake\TestSuite\TestCase;
 use Cake\Validation\Validator;
 use Cake\View\Form\FormContext;
@@ -25,6 +25,12 @@ use Cake\View\Form\FormContext;
  */
 class FormContextTest extends TestCase
 {
+    /**
+     * The request object.
+     *
+     * @var \Cake\Http\ServerRequest
+     */
+    protected $request;
 
     /**
      * setup method.
@@ -34,7 +40,7 @@ class FormContextTest extends TestCase
     public function setUp()
     {
         parent::setUp();
-        $this->request = new Request();
+        $this->request = new ServerRequest();
     }
 
     /**
@@ -96,6 +102,19 @@ class FormContextTest extends TestCase
     {
         $context = new FormContext($this->request, ['entity' => new Form()]);
         $this->assertNull($context->val('Comments.field'));
+    }
+
+    /**
+     * Test getting default value
+     *
+     * @return void
+     */
+    public function testValDefault()
+    {
+        $context = new FormContext($this->request, ['entity' => new Form()]);
+
+        $result = $context->val('title', ['default' => 'default default']);
+        $this->assertEquals('default default', $result);
     }
 
     /**
@@ -199,7 +218,9 @@ class FormContextTest extends TestCase
         $this->assertEquals([], $context->error('Alias.name'));
         $this->assertEquals([], $context->error('nope.nope'));
 
-        $mock = $this->getMock('Cake\Validation\Validator', ['errors']);
+        $mock = $this->getMockBuilder('Cake\Validation\Validator')
+            ->setMethods(['errors'])
+            ->getMock();
         $mock->expects($this->once())
             ->method('errors')
             ->willReturn(['key' => 'should be an array, not a string']);

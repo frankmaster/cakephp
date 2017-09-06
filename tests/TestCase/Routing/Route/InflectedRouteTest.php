@@ -1,16 +1,16 @@
 <?php
 /**
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
  * @since         3.2.1
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 namespace Cake\Test\TestCase\Routing\Route;
 
@@ -145,21 +145,21 @@ class InflectedRouteTest extends TestCase
     {
         $route = new InflectedRoute('/:controller/:action/:id', [], ['id' => Router::ID]);
         $route->compile();
-        $result = $route->parse('/my_posts/my_view/1');
+        $result = $route->parse('/my_posts/my_view/1', 'GET');
         $this->assertEquals('MyPosts', $result['controller']);
         $this->assertEquals('my_view', $result['action']);
         $this->assertEquals('1', $result['id']);
 
         $route = new InflectedRoute('/:controller/:action-:id');
         $route->compile();
-        $result = $route->parse('/my_posts/my_view-1');
+        $result = $route->parse('/my_posts/my_view-1', 'GET');
         $this->assertEquals('MyPosts', $result['controller']);
         $this->assertEquals('my_view', $result['action']);
         $this->assertEquals('1', $result['id']);
 
         $route = new InflectedRoute('/:controller/:action/:slug-:id', [], ['id' => Router::ID]);
         $route->compile();
-        $result = $route->parse('/my_posts/my_view/the-slug-1');
+        $result = $route->parse('/my_posts/my_view/the-slug-1', 'GET');
         $this->assertEquals('MyPosts', $result['controller']);
         $this->assertEquals('my_view', $result['action']);
         $this->assertEquals('1', $result['id']);
@@ -170,10 +170,10 @@ class InflectedRouteTest extends TestCase
             ['prefix' => 'admin', 'action' => 'index']
         );
         $route->compile();
-        $result = $route->parse('/admin/');
+        $result = $route->parse('/admin/', 'GET');
         $this->assertFalse($result);
 
-        $result = $route->parse('/admin/my_posts');
+        $result = $route->parse('/admin/my_posts', 'GET');
         $this->assertEquals('MyPosts', $result['controller']);
         $this->assertEquals('index', $result['action']);
 
@@ -181,15 +181,30 @@ class InflectedRouteTest extends TestCase
             '/media/search/*',
             ['controller' => 'Media', 'action' => 'search_it']
         );
-        $result = $route->parse('/media/search');
+        $result = $route->parse('/media/search', 'GET');
         $this->assertEquals('Media', $result['controller']);
         $this->assertEquals('search_it', $result['action']);
         $this->assertEquals([], $result['pass']);
 
-        $result = $route->parse('/media/search/tv_shows');
+        $result = $route->parse('/media/search/tv_shows', 'GET');
         $this->assertEquals('Media', $result['controller']);
         $this->assertEquals('search_it', $result['action']);
         $this->assertEquals(['tv_shows'], $result['pass']);
+    }
+
+    /**
+     * Test that parse() checks methods.
+     *
+     * @return void
+     */
+    public function testParseMethodMatch()
+    {
+        $route = new InflectedRoute('/:controller/:action', ['_method' => 'POST']);
+        $this->assertFalse($route->parse('/blog_posts/add_new', 'GET'));
+
+        $result = $route->parse('/blog_posts/add_new', 'POST');
+        $this->assertEquals('BlogPosts', $result['controller']);
+        $this->assertEquals('add_new', $result['action']);
     }
 
     /**
@@ -207,7 +222,7 @@ class InflectedRouteTest extends TestCase
         ]);
         $expectedUrl = '/plugin/controller_name/action_name';
         $this->assertEquals($expectedUrl, $url);
-        $result = $route->parse($expectedUrl);
+        $result = $route->parse($expectedUrl, 'GET');
         $this->assertEquals('ControllerName', $result['controller']);
         $this->assertEquals('action_name', $result['action']);
         $this->assertEquals('Vendor/PluginName', $result['plugin']);

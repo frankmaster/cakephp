@@ -1,16 +1,16 @@
 <?php
 /**
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
  * @since         3.0.0
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 namespace Cake\Test\TestCase\ORM;
 
@@ -26,7 +26,7 @@ class TableRegistryTest extends TestCase
     /**
      * Original TableLocator.
      *
-     * @var Cake\ORM\Locator\LocatorInterface
+     * @var \Cake\ORM\Locator\LocatorInterface
      */
     protected $_originalLocator;
 
@@ -39,7 +39,7 @@ class TableRegistryTest extends TestCase
     public function setUp()
     {
         parent::setUp();
-        $this->_originalLocator = TableRegistry::locator();
+        $this->_originalLocator = TableRegistry::getTableLocator();
     }
 
     /**
@@ -50,18 +50,18 @@ class TableRegistryTest extends TestCase
     public function tearDown()
     {
         parent::tearDown();
-        TableRegistry::locator($this->_originalLocator);
+        TableRegistry::setTableLocator($this->_originalLocator);
     }
 
     /**
      * Sets and returns mock LocatorInterface instance.
      *
-     * @return Cake\ORM\Locator\LocatorInterface
+     * @return \Cake\ORM\Locator\LocatorInterface|\PHPUnit_Framework_MockObject_MockObject
      */
     protected function _setMockLocator()
     {
-        $locator = $this->getMock('Cake\ORM\Locator\LocatorInterface');
-        TableRegistry::locator($locator);
+        $locator = $this->getMockBuilder('Cake\ORM\Locator\LocatorInterface')->getMock();
+        TableRegistry::setTableLocator($locator);
 
         return $locator;
     }
@@ -75,19 +75,42 @@ class TableRegistryTest extends TestCase
     {
         $this->assertInstanceOf('Cake\ORM\Locator\LocatorInterface', TableRegistry::locator());
 
-        $locator = $this->_setMockLocator();
+        $locator = $this->getMockBuilder('Cake\ORM\Locator\LocatorInterface')->getMock();
+        TableRegistry::locator($locator);
 
         $this->assertSame($locator, TableRegistry::locator());
     }
 
     /**
-     * Test that locator() method is returing TableLocator by default.
+     * Test testSetLocator() method.
+     *
+     * @return void
+     */
+    public function testSetLocator()
+    {
+        $locator = $this->_setMockLocator();
+
+        $this->assertSame($locator, TableRegistry::getTableLocator());
+    }
+
+    /**
+     * Test testSetLocator() method.
+     *
+     * @return void
+     */
+    public function testGetLocator()
+    {
+        $this->assertInstanceOf('Cake\ORM\Locator\LocatorInterface', TableRegistry::getTableLocator());
+    }
+
+    /**
+     * Test that locator() method is returning TableLocator by default.
      *
      * @return void
      */
     public function testLocatorDefault()
     {
-        $locator = TableRegistry::locator();
+        $locator = TableRegistry::getTableLocator();
         $this->assertInstanceOf('Cake\ORM\Locator\TableLocator', $locator);
     }
 
@@ -124,7 +147,7 @@ class TableRegistryTest extends TestCase
      */
     public function testSet()
     {
-        $table = $this->getMock('Cake\ORM\Table');
+        $table = $this->getMockBuilder('Cake\ORM\Table')->getMock();
 
         $locator = $this->_setMockLocator();
         $locator->expects($this->once())->method('set')->with('Test', $table);

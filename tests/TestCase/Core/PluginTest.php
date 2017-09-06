@@ -1,15 +1,15 @@
 <?php
 /**
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
  * @since         2.0.0
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 namespace Cake\Test\TestCase\Core;
 
@@ -19,7 +19,6 @@ use Cake\TestSuite\TestCase;
 
 /**
  * PluginTest class
- *
  */
 class PluginTest extends TestCase
 {
@@ -77,12 +76,12 @@ class PluginTest extends TestCase
      */
     public function testLoadSingleWithAutoload()
     {
-        $this->assertFalse(class_exists('Company\TestPluginThree\Utility\Hello'));
-        Plugin::load('Company/TestPluginThree', [
+        $this->assertFalse(class_exists('Company\TestPluginFive\Utility\Hello'));
+        Plugin::load('Company/TestPluginFive', [
             'autoload' => true,
         ]);
         $this->assertTrue(
-            class_exists('Company\TestPluginThree\Utility\Hello'),
+            class_exists('Company\TestPluginFive\Utility\Hello'),
             'Class should be loaded'
         );
     }
@@ -94,7 +93,6 @@ class PluginTest extends TestCase
      */
     public function testLoadSingleWithAutoloadAndBootstrap()
     {
-        $this->assertFalse(class_exists('Company\TestPluginFive\Utility\Hello'));
         Plugin::load(
             'Company/TestPluginFive',
             [
@@ -200,7 +198,7 @@ class PluginTest extends TestCase
      * Tests that loading a missing routes file throws a warning
      *
      * @return void
-     * @expectedException \PHPUNIT_FRAMEWORK_ERROR_WARNING
+     * @expectedException \PHPUnit\Framework\Error\Warning
      */
     public function testLoadMultipleWithDefaultsMissingFile()
     {

@@ -1,16 +1,16 @@
 <?php
 /**
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
  * @since         3.0.0
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 namespace Cake\Test\TestCase\Form;
 
@@ -36,7 +36,7 @@ class FormTest extends TestCase
         $this->assertInstanceOf('Cake\Form\Schema', $schema);
         $this->assertSame($schema, $form->schema(), 'Same instance each time');
 
-        $schema = $this->getMock('Cake\Form\Schema');
+        $schema = $this->getMockBuilder('Cake\Form\Schema')->getMock();
         $this->assertSame($schema, $form->schema($schema));
         $this->assertSame($schema, $form->schema());
     }
@@ -54,7 +54,7 @@ class FormTest extends TestCase
         $this->assertInstanceOf('Cake\Validation\Validator', $validator);
         $this->assertSame($validator, $form->validator(), 'Same instance each time');
 
-        $validator = $this->getMock('Cake\Validation\Validator');
+        $validator = $this->getMockBuilder('Cake\Validation\Validator')->getMock();
         $this->assertSame($validator, $form->validator($validator));
         $this->assertSame($validator, $form->validator());
     }
@@ -116,13 +116,31 @@ class FormTest extends TestCase
     }
 
     /**
+     * Test setErrors()
+     *
+     * @return void
+     */
+    public function testSetErrors()
+    {
+        $form = new Form();
+        $expected = [
+           'field_name' => ['rule_name' => 'message']
+        ];
+
+        $form->setErrors($expected);
+        $this->assertSame($expected, $form->errors());
+    }
+
+    /**
      * Test _execute is skipped on validation failure.
      *
      * @return void
      */
     public function testExecuteInvalid()
     {
-        $form = $this->getMock('Cake\Form\Form', ['_execute']);
+        $form = $this->getMockBuilder('Cake\Form\Form')
+            ->setMethods(['_execute'])
+            ->getMock();
         $form->validator()
             ->add('email', 'format', ['rule' => 'email']);
         $data = [
@@ -141,7 +159,9 @@ class FormTest extends TestCase
      */
     public function testExecuteValid()
     {
-        $form = $this->getMock('Cake\Form\Form', ['_execute']);
+        $form = $this->getMockBuilder('Cake\Form\Form')
+            ->setMethods(['_execute'])
+            ->getMock();
         $form->validator()
             ->add('email', 'format', ['rule' => 'email']);
         $data = [

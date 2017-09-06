@@ -1,29 +1,25 @@
 <?php
 /**
- * RedisEngineTest file
- *
- * CakePHP(tm) Tests <http://book.cakephp.org/view/1196/Testing>
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://book.cakephp.org/view/1196/Testing CakePHP(tm) Tests
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://book.cakephp.org/view/1196/Testing CakePHP(tm) Tests
  * @since         2.2.0
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 namespace Cake\Test\TestCase\Cache\Engine;
 
 use Cake\Cache\Cache;
 use Cake\Cache\Engine\RedisEngine;
-use Cake\Core\Configure;
 use Cake\TestSuite\TestCase;
 
 /**
  * RedisEngineTest class
- *
  */
 class RedisEngineTest extends TestCase
 {
@@ -344,6 +340,47 @@ class RedisEngineTest extends TestCase
     }
 
     /**
+     * Test that increment() and decrement() can live forever.
+     *
+     * @return void
+     */
+    public function testIncrementDecrementForvever()
+    {
+        $this->_configCache(['duration' => 0]);
+        Cache::delete('test_increment', 'redis');
+        Cache::delete('test_decrement', 'redis');
+
+        $result = Cache::increment('test_increment', 1, 'redis');
+        $this->assertEquals(1, $result);
+
+        $result = Cache::decrement('test_decrement', 1, 'redis');
+        $this->assertEquals(-1, $result);
+
+        $this->assertEquals(1, Cache::read('test_increment', 'redis'));
+        $this->assertEquals(-1, Cache::read('test_decrement', 'redis'));
+    }
+
+    /**
+     * Test that increment and decrement set ttls.
+     *
+     * @return void
+     */
+    public function testIncrementDecrementExpiring()
+    {
+        $this->_configCache(['duration' => 1]);
+        Cache::delete('test_increment', 'redis');
+        Cache::delete('test_decrement', 'redis');
+
+        $this->assertSame(1, Cache::increment('test_increment', 1, 'redis'));
+        $this->assertSame(-1, Cache::decrement('test_decrement', 1, 'redis'));
+
+        sleep(2);
+
+        $this->assertFalse(Cache::read('test_increment', 'redis'));
+        $this->assertFalse(Cache::read('test_decrement', 'redis'));
+    }
+
+    /**
      * test clearing redis.
      *
      * @return void
@@ -420,7 +457,7 @@ class RedisEngineTest extends TestCase
     }
 
     /**
-     * Tests that deleteing from a groups-enabled config is possible
+     * Tests that deleting from a groups-enabled config is possible
      *
      * @return void
      */

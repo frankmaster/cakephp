@@ -1,16 +1,16 @@
 <?php
 /**
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
  * @since         2.0.0
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 namespace Cake\Test\TestCase\Controller;
 
@@ -19,8 +19,8 @@ use Cake\Controller\Component\AuthComponent;
 use Cake\Controller\Component\CookieComponent;
 use Cake\Controller\Controller;
 use Cake\Core\Plugin;
-use Cake\Network\Request;
-use Cake\Network\Response;
+use Cake\Http\Response;
+use Cake\Http\ServerRequest;
 use Cake\TestSuite\TestCase;
 
 /**
@@ -41,7 +41,7 @@ class ComponentRegistryTest extends TestCase
     public function setUp()
     {
         parent::setUp();
-        $controller = new Controller(new Request(), new Response());
+        $controller = new Controller(new ServerRequest(), new Response());
         $this->Components = new ComponentRegistry($controller);
     }
 
@@ -108,11 +108,11 @@ class ComponentRegistryTest extends TestCase
      */
     public function testLoadWithEnableFalse()
     {
-        $mock = $this->getMock('Cake\Event\EventManager');
+        $mock = $this->getMockBuilder('Cake\Event\EventManager')->getMock();
         $mock->expects($this->never())
             ->method('attach');
 
-        $this->Components->getController()->eventManager($mock);
+        $this->Components->getController()->setEventManager($mock);
 
         $result = $this->Components->load('Cookie', ['enabled' => false]);
         $this->assertInstanceOf('Cake\Controller\Component\CookieComponent', $result);
@@ -120,7 +120,7 @@ class ComponentRegistryTest extends TestCase
     }
 
     /**
-     * test missingcomponent exception
+     * test MissingComponent exception
      *
      * @expectedException \Cake\Controller\Exception\MissingComponentException
      * @return void
@@ -177,7 +177,7 @@ class ComponentRegistryTest extends TestCase
      */
     public function testReset()
     {
-        $eventManager = $this->Components->getController()->eventManager();
+        $eventManager = $this->Components->getController()->getEventManager();
         $instance = $this->Components->load('Auth');
         $this->assertSame(
             $instance,
@@ -186,7 +186,7 @@ class ComponentRegistryTest extends TestCase
         );
         $this->assertCount(1, $eventManager->listeners('Controller.startup'));
 
-        $this->assertNull($this->Components->reset(), 'No return expected');
+        $this->assertSame($this->Components, $this->Components->reset());
         $this->assertCount(0, $eventManager->listeners('Controller.startup'));
 
         $this->assertNotSame($instance, $this->Components->load('Auth'));
@@ -199,13 +199,42 @@ class ComponentRegistryTest extends TestCase
      */
     public function testUnload()
     {
-        $eventManager = $this->Components->getController()->eventManager();
+        $eventManager = $this->Components->getController()->getEventManager();
 
-        $result = $this->Components->load('Auth');
-        $this->Components->unload('Auth');
+        $this->Components->load('Auth');
+        $result = $this->Components->unload('Auth');
+
+        $this->assertSame($this->Components, $result);
+        $this->assertFalse(isset($this->Components->Auth), 'Should be gone');
+        $this->assertCount(0, $eventManager->listeners('Controller.startup'));
+    }
+
+    /**
+     * Test __unset.
+     *
+     * @return void
+     */
+    public function testUnset()
+    {
+        $eventManager = $this->Components->getController()->getEventManager();
+
+        $this->Components->load('Auth');
+        unset($this->Components->Auth);
 
         $this->assertFalse(isset($this->Components->Auth), 'Should be gone');
         $this->assertCount(0, $eventManager->listeners('Controller.startup'));
+    }
+
+    /**
+     * Test that unloading a none existing component triggers an error.
+     *
+     * @expectedException \Cake\Controller\Exception\MissingComponentException
+     * @expectedExceptionMessage Component class FooComponent could not be found.
+     * @return void
+     */
+    public function testUnloadUnknown()
+    {
+        $this->Components->unload('Foo');
     }
 
     /**
@@ -215,13 +244,61 @@ class ComponentRegistryTest extends TestCase
      */
     public function testSet()
     {
-        $eventManager = $this->Components->getController()->eventManager();
+        $eventManager = $this->Components->getController()->getEventManager();
         $this->assertCount(0, $eventManager->listeners('Controller.startup'));
 
         $auth = new AuthComponent($this->Components);
-        $this->Components->set('Auth', $auth);
+        $result = $this->Components->set('Auth', $auth);
 
-        $this->assertTrue(isset($this->Components->Auth), 'Should be gone');
+        $this->assertSame($this->Components, $result);
+        $this->assertTrue(isset($this->Components->Auth), 'Should be present');
         $this->assertCount(1, $eventManager->listeners('Controller.startup'));
+    }
+
+    /**
+     * Test __set.
+     *
+     * @return void
+     */
+    public function testMagicSet()
+    {
+        $eventManager = $this->Components->getController()->getEventManager();
+        $this->assertCount(0, $eventManager->listeners('Controller.startup'));
+
+        $auth = new AuthComponent($this->Components);
+        $this->Components->Auth = $auth;
+
+        $this->assertTrue(isset($this->Components->Auth), 'Should be present');
+        $this->assertCount(1, $eventManager->listeners('Controller.startup'));
+    }
+
+    /**
+     * Test Countable.
+     *
+     * @return void
+     */
+    public function testCountable()
+    {
+        $this->Components->load('Auth');
+        $this->assertInstanceOf('\Countable', $this->Components);
+        $count = count($this->Components);
+        $this->assertEquals(1, $count);
+    }
+
+    /**
+     * Test Traversable.
+     *
+     * @return void
+     */
+    public function testTraversable()
+    {
+        $this->Components->load('Auth');
+        $this->assertInstanceOf('\Traversable', $this->Components);
+
+        $result = null;
+        foreach ($this->Components as $component) {
+            $result = $component;
+        }
+        $this->assertNotNull($result);
     }
 }

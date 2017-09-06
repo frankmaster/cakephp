@@ -1,30 +1,29 @@
 <?php
 /**
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
  * @since         1.2.0
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 namespace Cake\Test\TestCase\View\Helper;
 
 use Cake\Core\Configure;
 use Cake\Core\Plugin;
 use Cake\Filesystem\File;
-use Cake\Network\Request;
+use Cake\Http\ServerRequest;
 use Cake\Routing\Router;
 use Cake\TestSuite\TestCase;
 use Cake\View\Helper\HtmlHelper;
 
 /**
  * HtmlHelperTest class
- *
  */
 class HtmlHelperTest extends TestCase
 {
@@ -44,11 +43,18 @@ class HtmlHelperTest extends TestCase
     public $cDataEnd = 'preg:/[^\]]*\]\]\>[\s\r\n]*/';
 
     /**
-     * html property
+     * Helper to be tested
      *
-     * @var object
+     * @var \Cake\View\Helper\HtmlHelper
      */
-    public $Html = null;
+    public $Html;
+
+    /**
+     * Mocked view
+     *
+     * @var \Cake\View\View|\PHPUnit_Framework_MockObject_MockObject
+     */
+    public $View;
 
     /**
      * setUp method
@@ -58,14 +64,17 @@ class HtmlHelperTest extends TestCase
     public function setUp()
     {
         parent::setUp();
-        $this->View = $this->getMock('Cake\View\View', ['append']);
+        $this->View = $this->getMockBuilder('Cake\View\View')
+            ->setMethods(['append'])
+            ->getMock();
         $this->Html = new HtmlHelper($this->View);
-        $this->Html->request = new Request();
-        $this->Html->request->webroot = '';
+        $this->Html->request = new ServerRequest([
+            'webroot' => '',
+        ]);
         $this->Html->Url->request = $this->Html->request;
 
-        Configure::write('App.namespace', 'TestApp');
         Plugin::load(['TestTheme']);
+        static::setAppNamespace();
         Configure::write('Asset.timestamp', false);
     }
 
@@ -334,6 +343,15 @@ class HtmlHelperTest extends TestCase
         $result = $this->Html->image('/test/view/1.gif');
         $expected = ['img' => ['src' => '/test/view/1.gif', 'alt' => '']];
         $this->assertHtml($expected, $result);
+
+        $result = $this->Html->image('cid:cakephp_logo');
+        $expected = ['img' => ['src' => 'cid:cakephp_logo', 'alt' => '']];
+        $this->assertHtml($expected, $result);
+
+        $result = $this->Html->image('x:"><script>alert(1)</script>');
+        $expected = ['img' => ['src' => 'x:&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;', 'alt' => '']];
+
+        $this->assertHtml($expected, $result);
     }
 
     /**
@@ -484,7 +502,6 @@ class HtmlHelperTest extends TestCase
      */
     public function testThemeAssetsInMainWebrootPath()
     {
-        $webRoot = Configure::read('App.wwwRoot');
         Configure::write('App.wwwRoot', TEST_APP . 'webroot/');
 
         $this->Html->Url->theme = 'TestTheme';
@@ -510,13 +527,10 @@ class HtmlHelperTest extends TestCase
     public function testStyle()
     {
         $result = $this->Html->style(['display' => 'none', 'margin' => '10px']);
-        $expected = 'display:none; margin:10px;';
-        $this->assertRegExp('/^display\s*:\s*none\s*;\s*margin\s*:\s*10px\s*;?$/', $expected);
+        $this->assertEquals('display:none; margin:10px;', $result);
 
         $result = $this->Html->style(['display' => 'none', 'margin' => '10px'], false);
-        $lines = explode("\n", $result);
-        $this->assertRegExp('/^\s*display\s*:\s*none\s*;\s*$/', $lines[0]);
-        $this->assertRegExp('/^\s*margin\s*:\s*10px\s*;?$/', $lines[1]);
+        $this->assertEquals("display:none;\nmargin:10px;", $result);
     }
 
     /**
@@ -553,6 +567,10 @@ class HtmlHelperTest extends TestCase
         $expected['link']['href'] = 'css/screen.css?with=param&amp;other=param';
         $this->assertHtml($expected, $result);
 
+        $result = $this->Html->css('x:"><script>alert(1)</script>');
+        $expected['link']['href'] = 'x:&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;';
+        $this->assertHtml($expected, $result);
+
         $result = $this->Html->css('http://whatever.com/screen.css?1234');
         $expected['link']['href'] = 'preg:/http:\/\/.*\/screen\.css\?1234/';
         $this->assertHtml($expected, $result);
@@ -571,7 +589,7 @@ class HtmlHelperTest extends TestCase
         $this->assertHtml($expected, $result[0]);
         $expected['link']['href'] = 'preg:/.*css\/vendor\.generic\.css/';
         $this->assertHtml($expected, $result[1]);
-        $this->assertEquals(2, count($result));
+        $this->assertCount(2, $result);
 
         $this->View->expects($this->at(0))
             ->method('append')
@@ -671,7 +689,7 @@ class HtmlHelperTest extends TestCase
         $this->assertHtml($expected, $result[0]);
         $expected['link']['href'] = 'preg:/.*test_plugin\/css\/vendor\.generic\.css/';
         $this->assertHtml($expected, $result[1]);
-        $this->assertEquals(2, count($result));
+        $this->assertCount(2, $result);
 
         Plugin::unload('TestPlugin');
     }
@@ -895,6 +913,12 @@ class HtmlHelperTest extends TestCase
         ];
         $this->assertHtml($expected, $result);
 
+        $result = $this->Html->script('x:"><script>alert(1)</script>');
+        $expected = [
+            'script' => ['src' => 'x:&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;']
+        ];
+        $this->assertHtml($expected, $result);
+
         $result = $this->Html->script('foo2', ['pathPrefix' => '/my/custom/path/']);
         $expected = [
             'script' => ['src' => '/my/custom/path/foo2.js']
@@ -1078,9 +1102,7 @@ class HtmlHelperTest extends TestCase
         $result = $this->Html->scriptBlock('window.foo = 2;');
         $expected = [
             '<script',
-            $this->cDataStart,
             'window.foo = 2;',
-            $this->cDataEnd,
             '/script',
         ];
         $this->assertHtml($expected, $result);
@@ -1088,9 +1110,7 @@ class HtmlHelperTest extends TestCase
         $result = $this->Html->scriptBlock('window.foo = 2;', ['type' => 'text/x-handlebars-template']);
         $expected = [
             'script' => ['type' => 'text/x-handlebars-template'],
-            $this->cDataStart,
             'window.foo = 2;',
-            $this->cDataEnd,
             '/script',
         ];
         $this->assertHtml($expected, $result);
@@ -1143,16 +1163,14 @@ class HtmlHelperTest extends TestCase
      */
     public function testScriptStartAndScriptEnd()
     {
-        $result = $this->Html->scriptStart(['safe' => true]);
+        $result = $this->Html->scriptStart();
         $this->assertNull($result);
         echo 'this is some javascript';
 
         $result = $this->Html->scriptEnd();
         $expected = [
             '<script',
-            $this->cDataStart,
             'this is some javascript',
-            $this->cDataEnd,
             '/script'
         ];
         $this->assertHtml($expected, $result);
@@ -1165,6 +1183,20 @@ class HtmlHelperTest extends TestCase
         $expected = [
             '<script',
             'this is some javascript',
+            '/script'
+        ];
+        $this->assertHtml($expected, $result);
+
+        $result = $this->Html->scriptStart(['safe' => true]);
+        $this->assertNull($result);
+        echo 'this is some javascript';
+
+        $result = $this->Html->scriptEnd();
+        $expected = [
+            '<script',
+            $this->cDataStart,
+            'this is some javascript',
+            $this->cDataEnd,
             '/script'
         ];
         $this->assertHtml($expected, $result);
@@ -1280,6 +1312,11 @@ class HtmlHelperTest extends TestCase
         ];
         $this->assertHtml($expected, $result);
 
+        $this->Html->addCrumb('Fifth', [
+            'plugin' => false,
+            'controller' => 'controller',
+            'action' => 'action',
+        ]);
         $result = $this->Html->getCrumbs('-', 'Start');
         $expected = [
             ['a' => ['href' => '/']],
@@ -1298,7 +1335,11 @@ class HtmlHelperTest extends TestCase
             'Third',
             '/a',
             '-',
-            'Fourth'
+            'Fourth',
+            '-',
+            ['a' => ['href' => '/controller/action']],
+            'Fifth',
+            '/a',
         ];
         $this->assertHtml($expected, $result);
     }
@@ -1623,6 +1664,35 @@ class HtmlHelperTest extends TestCase
     }
 
     /**
+     * @return array
+     */
+    public function dataMetaLinksProvider()
+    {
+        return [
+            ['canonical', ['controller' => 'posts', 'action' => 'show'], '/posts/show'],
+            ['first', ['controller' => 'posts', 'action' => 'index'], '/posts'],
+            ['last', ['controller' => 'posts', 'action' => 'index', '?' => ['page' => 10]], '/posts?page=10'],
+            ['prev', ['controller' => 'posts', 'action' => 'index', '?' => ['page' => 4]], '/posts?page=4'],
+            ['next', ['controller' => 'posts', 'action' => 'index', '?' => ['page' => 6]], '/posts?page=6']
+        ];
+    }
+
+    /**
+     * test canonical and pagination meta links
+     *
+     * @param string $type
+     * @param array $url
+     * @param string $expectedUrl
+     * @dataProvider dataMetaLinksProvider
+     */
+    public function testMetaLinks($type, array $url, $expectedUrl)
+    {
+        $result = $this->Html->meta($type, $url);
+        $expected = ['link' => ['href' => $expectedUrl, 'rel' => $type]];
+        $this->assertHtml($expected, $result);
+    }
+
+    /**
      * Test generating favicon's with meta()
      *
      * @return void
@@ -1645,6 +1715,24 @@ class HtmlHelperTest extends TestCase
 
         $result = $this->Html->meta('icon', '/favicon.png?one=two&three=four');
         $url = '/favicon.png?one=two&amp;three=four';
+        $expected = [
+            'link' => [
+                'href' => $url,
+                'type' => 'image/x-icon',
+                'rel' => 'icon'
+            ],
+            [
+                'link' => [
+                    'href' => $url,
+                    'type' => 'image/x-icon',
+                    'rel' => 'shortcut icon'
+                ]
+            ]
+        ];
+        $this->assertHtml($expected, $result);
+
+        $result = $this->Html->meta('icon', 'x:"><script>alert(1)</script>');
+        $url = 'x:&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;';
         $expected = [
             'link' => [
                 'href' => $url,
@@ -1725,6 +1813,25 @@ class HtmlHelperTest extends TestCase
     }
 
     /**
+     * Test meta() with custom tag and block argument
+     */
+    public function testMetaCustomWithBlock()
+    {
+        $this->View->expects($this->at(0))
+            ->method('append')
+            ->with('meta', $this->stringContains('og:site_name'));
+        $this->View->expects($this->at(1))
+            ->method('append')
+            ->with('meta', $this->stringContains('og:description'));
+
+        $result = $this->Html->meta(['property' => 'og:site_name', 'content' => 'CakePHP', 'block' => true]);
+        $this->assertNull($result, 'compact style should work');
+
+        $result = $this->Html->meta(['property' => 'og:description', 'content' => 'CakePHP'], null, ['block' => true]);
+        $this->assertNull($result, 'backwards compat style should work.');
+    }
+
+    /**
      * testTableHeaders method
      *
      * @return void
@@ -1757,7 +1864,7 @@ class HtmlHelperTest extends TestCase
     {
         $tr = [
             'td content 1',
-            ['td content 2', ["width" => "100px"]],
+            ['td content 2', ['width' => '100px']],
             ['td content 3', ['width' => '100px']]
         ];
         $result = $this->Html->tableCells($tr);
@@ -1882,6 +1989,12 @@ class HtmlHelperTest extends TestCase
         $result = $this->Html->div('class-name', '<text>', ['escape' => true]);
         $expected = ['div' => ['class' => 'class-name'], '&lt;text&gt;', '/div'];
         $this->assertHtml($expected, $result);
+
+        $evilKey = "><script>alert(1)</script>";
+        $options = [$evilKey => 'some value'];
+        $result = $this->Html->div('class-name', '', $options);
+        $expected = '<div &gt;&lt;script&gt;alert(1)&lt;/script&gt;="some value" class="class-name"></div>';
+        $this->assertEquals($expected, $result);
     }
 
     /**

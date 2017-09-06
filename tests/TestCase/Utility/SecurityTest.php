@@ -1,16 +1,16 @@
 <?php
 /**
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
  * @since         1.2.0
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 namespace Cake\Test\TestCase\Utility;
 
@@ -21,7 +21,6 @@ use Cake\Utility\Security;
 
 /**
  * SecurityTest class
- *
  */
 class SecurityTest extends TestCase
 {
@@ -77,7 +76,7 @@ class SecurityTest extends TestCase
      */
     public function testRijndael()
     {
-        $this->skipIf(!function_exists('mcrypt_encrypt'));
+        $this->skipIf(!function_exists('mcrypt_encrypt') || version_compare(PHP_VERSION, '7.1', '>='));
         $engine = Security::engine();
 
         Security::engine(new Mcrypt());
@@ -260,7 +259,7 @@ class SecurityTest extends TestCase
      */
     public function testEngineEquivalence()
     {
-        $this->skipIf(!defined('MCRYPT_RIJNDAEL_128'), 'This needs mcrypt extension to be loaded.');
+        $this->skipIf(!function_exists('mcrypt_encrypt') || version_compare(PHP_VERSION, '7.1', '>='), 'This needs mcrypt extension to be loaded.');
 
         $restore = Security::engine();
         $txt = "Obi-wan you're our only hope";
@@ -294,7 +293,18 @@ class SecurityTest extends TestCase
     }
 
     /**
-     * Test the random method.
+     * Tests that the salt can be set and retrieved
+     *
+     * @return void
+     */
+    public function testGetSetSalt()
+    {
+        Security::setSalt('foobarbaz');
+        $this->assertEquals('foobarbaz', Security::getSalt());
+    }
+
+    /**
+     * Test the randomBytes method.
      *
      * @return void
      */
@@ -305,5 +315,23 @@ class SecurityTest extends TestCase
 
         $value = Security::randomBytes(64);
         $this->assertSame(64, strlen($value));
+
+        $this->assertRegExp('/[^0-9a-f]/', $value, 'should return a binary string');
+    }
+
+    /**
+     * Test the insecureRandomBytes method
+     *
+     * @return void
+     */
+    public function testInsecureRandomBytes()
+    {
+        $value = Security::insecureRandomBytes(16);
+        $this->assertSame(16, strlen($value));
+
+        $value = Security::insecureRandomBytes(64);
+        $this->assertSame(64, strlen($value));
+
+        $this->assertRegExp('/[^0-9a-f]/', $value, 'should return a binary string');
     }
 }

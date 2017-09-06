@@ -2,17 +2,17 @@
 /**
  * NumberHelperTest file
  *
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
  * @since         1.2.0
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 namespace Cake\Test\TestCase\View\Helper;
 
@@ -48,7 +48,6 @@ class NumberMock
 
 /**
  * NumberHelperTest class
- *
  */
 class NumberHelperTest extends TestCase
 {
@@ -64,7 +63,7 @@ class NumberHelperTest extends TestCase
         $this->View = new View();
 
         $this->_appNamespace = Configure::read('App.namespace');
-        Configure::write('App.namespace', 'TestApp');
+        static::setAppNamespace();
     }
 
     /**
@@ -75,7 +74,7 @@ class NumberHelperTest extends TestCase
     public function tearDown()
     {
         parent::tearDown();
-        Configure::write('App.namespace', $this->_appNamespace);
+        static::setAppNamespace($this->_appNamespace);
         unset($this->View);
     }
 
@@ -107,7 +106,9 @@ class NumberHelperTest extends TestCase
      */
     public function testNumberHelperProxyMethodCalls($method)
     {
-        $number = $this->getMock(__NAMESPACE__ . '\NumberMock', [$method]);
+        $number = $this->getMockBuilder(__NAMESPACE__ . '\NumberMock')
+            ->setMethods([$method])
+            ->getMock();
         $helper = new NumberHelperTestObject($this->View, ['engine' => __NAMESPACE__ . '\NumberMock']);
         $helper->attach($number);
         $number->expects($this->at(0))

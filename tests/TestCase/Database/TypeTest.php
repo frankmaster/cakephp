@@ -1,16 +1,16 @@
 <?php
 /**
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
  * @since         3.0.0
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 namespace Cake\Test\TestCase\Database;
 
@@ -20,7 +20,6 @@ use PDO;
 
 /**
  * Mock class for testing type registering
- *
  */
 class FooType extends \Cake\Database\Type
 {
@@ -91,6 +90,10 @@ class TypeTest extends TestCase
         return [
             ['string'],
             ['text'],
+            ['smallinteger'],
+            ['tinyinteger'],
+            ['integer'],
+            ['biginteger'],
         ];
     }
 
@@ -179,7 +182,7 @@ class TypeTest extends TestCase
         );
         $type = Type::build('biginteger');
         $integer = time() * time();
-        $driver = $this->getMock('\Cake\Database\Driver');
+        $driver = $this->getMockBuilder('\Cake\Database\Driver')->getMock();
         $this->assertSame($integer, $type->toPHP($integer, $driver));
         $this->assertSame($integer, $type->toPHP('' . $integer, $driver));
         $this->assertSame(3, $type->toPHP(3.57, $driver));
@@ -194,7 +197,7 @@ class TypeTest extends TestCase
     {
         $type = Type::build('biginteger');
         $integer = time() * time();
-        $driver = $this->getMock('\Cake\Database\Driver');
+        $driver = $this->getMockBuilder('\Cake\Database\Driver')->getMock();
         $this->assertEquals(PDO::PARAM_INT, $type->toStatement($integer, $driver));
     }
 
@@ -206,12 +209,12 @@ class TypeTest extends TestCase
     public function testDecimalToPHP()
     {
         $type = Type::build('decimal');
-        $driver = $this->getMock('\Cake\Database\Driver');
+        $driver = $this->getMockBuilder('\Cake\Database\Driver')->getMock();
 
         $this->assertSame(3.14159, $type->toPHP('3.14159', $driver));
         $this->assertSame(3.14159, $type->toPHP(3.14159, $driver));
         $this->assertSame(3.0, $type->toPHP(3, $driver));
-        $this->assertSame(1, $type->toPHP(['3', '4'], $driver));
+        $this->assertSame(1.0, $type->toPHP(['3', '4'], $driver));
     }
 
     /**
@@ -223,7 +226,7 @@ class TypeTest extends TestCase
     {
         $type = Type::build('decimal');
         $string = '12.55';
-        $driver = $this->getMock('\Cake\Database\Driver');
+        $driver = $this->getMockBuilder('\Cake\Database\Driver')->getMock();
         $this->assertEquals(PDO::PARAM_STR, $type->toStatement($string, $driver));
     }
 
@@ -234,7 +237,7 @@ class TypeTest extends TestCase
      */
     public function testSet()
     {
-        $instance = $this->getMock('Cake\Database\Type');
+        $instance = $this->getMockBuilder('Cake\Database\Type')->getMock();
         Type::set('random', $instance);
         $this->assertSame($instance, Type::build('random'));
     }

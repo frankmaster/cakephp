@@ -1,27 +1,25 @@
 <?php
 /**
- * CakePHP :  Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP :  Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP Project
  * @since         1.2.0
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 namespace Cake\Test\TestCase\Shell\Task;
 
-use Cake\Core\Configure;
 use Cake\Core\Plugin;
 use Cake\Filesystem\Folder;
 use Cake\TestSuite\TestCase;
 
 /**
  * ExtractTaskTest class
- *
  */
 class ExtractTaskTest extends TestCase
 {
@@ -34,16 +32,19 @@ class ExtractTaskTest extends TestCase
     public function setUp()
     {
         parent::setUp();
-        $this->io = $this->getMock('Cake\Console\ConsoleIo', [], [], '', false);
-        $progress = $this->getMock('Cake\Shell\Helper\ProgressHelper', [], [$this->io]);
+        $this->io = $this->getMockBuilder('Cake\Console\ConsoleIo')
+            ->disableOriginalConstructor()
+            ->getMock();
+        $progress = $this->getMockBuilder('Cake\Shell\Helper\ProgressHelper')
+            ->setConstructorArgs([$this->io])
+            ->getMock();
         $this->io->method('helper')
             ->will($this->returnValue($progress));
 
-        $this->Task = $this->getMock(
-            'Cake\Shell\Task\ExtractTask',
-            ['in', 'out', 'err', '_stop'],
-            [$this->io]
-        );
+        $this->Task = $this->getMockBuilder('Cake\Shell\Task\ExtractTask')
+            ->setMethods(['in', 'out', 'err', '_stop'])
+            ->setConstructorArgs([$this->io])
+            ->getMock();
         $this->path = TMP . 'tests/extract_task_test';
         new Folder($this->path . DS . 'locale', true);
     }
@@ -81,10 +82,10 @@ class ExtractTaskTest extends TestCase
         $this->Task->expects($this->never())->method('_stop');
 
         $this->Task->main();
-        $this->assertTrue(file_exists($this->path . DS . 'default.pot'));
+        $this->assertFileExists($this->path . DS . 'default.pot');
         $result = file_get_contents($this->path . DS . 'default.pot');
 
-        $this->assertFalse(file_exists($this->path . DS . 'cake.pot'));
+        $this->assertFileNotExists($this->path . DS . 'cake.pot');
 
         // extract.ctp
         $pattern = '/\#: Template[\/\\\\]Pages[\/\\\\]extract\.ctp:\d+;\d+\n';
@@ -174,7 +175,7 @@ class ExtractTaskTest extends TestCase
             ->will($this->returnValue('y'));
 
         $this->Task->main();
-        $this->assertTrue(file_exists($this->path . DS . 'default.pot'));
+        $this->assertFileExists($this->path . DS . 'default.pot');
         $result = file_get_contents($this->path . DS . 'default.pot');
 
         $pattern = '/\#: .*extract\.ctp:\d+\n/';
@@ -201,7 +202,7 @@ class ExtractTaskTest extends TestCase
             ->will($this->returnValue('y'));
 
         $this->Task->main();
-        $this->assertTrue(file_exists($this->path . DS . 'default.pot'));
+        $this->assertFileExists($this->path . DS . 'default.pot');
 
         $result = file_get_contents($this->path . DS . 'default.pot');
 
@@ -241,12 +242,11 @@ class ExtractTaskTest extends TestCase
      */
     public function testExtractExcludePlugins()
     {
-        Configure::write('App.namespace', 'TestApp');
-        $this->Task = $this->getMock(
-            'Cake\Shell\Task\ExtractTask',
-            ['_isExtractingApp', 'in', 'out', 'err', 'clear', '_stop'],
-            [$this->io]
-        );
+        static::setAppNamespace();
+        $this->Task = $this->getMockBuilder('Cake\Shell\Task\ExtractTask')
+            ->setMethods(['_isExtractingApp', 'in', 'out', 'err', 'clear', '_stop'])
+            ->setConstructorArgs([$this->io])
+            ->getMock();
         $this->Task->expects($this->exactly(1))
             ->method('_isExtractingApp')
             ->will($this->returnValue(true));
@@ -267,13 +267,12 @@ class ExtractTaskTest extends TestCase
      */
     public function testExtractPlugin()
     {
-        Configure::write('App.namespace', 'TestApp');
+        static::setAppNamespace();
 
-        $this->Task = $this->getMock(
-            'Cake\Shell\Task\ExtractTask',
-            ['_isExtractingApp', 'in', 'out', 'err', 'clear', '_stop'],
-            [$this->io]
-        );
+        $this->Task = $this->getMockBuilder('Cake\Shell\Task\ExtractTask')
+            ->setMethods(['_isExtractingApp', 'in', 'out', 'err', 'clear', '_stop'])
+            ->setConstructorArgs([$this->io])
+            ->getMock();
 
         $this->Task->params['output'] = $this->path . DS;
         $this->Task->params['plugin'] = 'TestPlugin';
@@ -292,13 +291,12 @@ class ExtractTaskTest extends TestCase
      */
     public function testExtractVendoredPlugin()
     {
-        Configure::write('App.namespace', 'TestApp');
+        static::setAppNamespace();
 
-        $this->Task = $this->getMock(
-            'Cake\Shell\Task\ExtractTask',
-            ['_isExtractingApp', 'in', 'out', 'err', 'clear', '_stop'],
-            [$this->io]
-        );
+        $this->Task = $this->getMockBuilder('Cake\Shell\Task\ExtractTask')
+            ->setMethods(['_isExtractingApp', 'in', 'out', 'err', 'clear', '_stop'])
+            ->setConstructorArgs([$this->io])
+            ->getMock();
 
         $this->Task->params['output'] = $this->path . DS;
         $this->Task->params['plugin'] = 'Company/TestPluginThree';
@@ -317,7 +315,7 @@ class ExtractTaskTest extends TestCase
      */
     public function testExtractOverwrite()
     {
-        Configure::write('App.namespace', 'TestApp');
+        static::setAppNamespace();
         $this->Task->interactive = false;
 
         $this->Task->params['paths'] = TEST_APP . 'TestApp/';
@@ -326,7 +324,7 @@ class ExtractTaskTest extends TestCase
         $this->Task->params['overwrite'] = true;
 
         file_put_contents($this->path . DS . 'default.pot', 'will be overwritten');
-        $this->assertTrue(file_exists($this->path . DS . 'default.pot'));
+        $this->assertFileExists($this->path . DS . 'default.pot');
         $original = file_get_contents($this->path . DS . 'default.pot');
 
         $this->Task->main();
@@ -341,7 +339,7 @@ class ExtractTaskTest extends TestCase
      */
     public function testExtractCore()
     {
-        Configure::write('App.namespace', 'TestApp');
+        static::setAppNamespace();
         $this->Task->interactive = false;
 
         $this->Task->params['paths'] = TEST_APP . 'TestApp/';
@@ -349,7 +347,7 @@ class ExtractTaskTest extends TestCase
         $this->Task->params['extract-core'] = 'yes';
 
         $this->Task->main();
-        $this->assertTrue(file_exists($this->path . DS . 'cake.pot'));
+        $this->assertFileExists($this->path . DS . 'cake.pot');
         $result = file_get_contents($this->path . DS . 'cake.pot');
 
         $pattern = '/#: Console\/Templates\//';

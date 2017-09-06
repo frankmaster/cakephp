@@ -1,16 +1,16 @@
 <?php
 /**
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
  * @since         3.0.0
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 namespace Cake\Test\TestCase\ORM;
 
@@ -20,6 +20,7 @@ use Cake\Database\Expression\QueryExpression;
 use Cake\Database\TypeMap;
 use Cake\Database\ValueBinder;
 use Cake\Datasource\ConnectionManager;
+use Cake\Event\Event;
 use Cake\I18n\Time;
 use Cake\ORM\Query;
 use Cake\ORM\ResultSet;
@@ -42,6 +43,7 @@ class QueryTest extends TestCase
         'core.articles_tags',
         'core.authors',
         'core.comments',
+        'core.datatypes',
         'core.posts',
         'core.tags'
     ];
@@ -569,12 +571,16 @@ class QueryTest extends TestCase
                     [
                         'id' => 1,
                         'name' => 'tag1',
-                        '_joinData' => ['article_id' => 1, 'tag_id' => 1]
+                        '_joinData' => ['article_id' => 1, 'tag_id' => 1],
+                        'description' => 'A big description',
+                        'created' => new Time('2016-01-01 00:00'),
                     ],
                     [
                         'id' => 2,
                         'name' => 'tag2',
-                        '_joinData' => ['article_id' => 1, 'tag_id' => 2]
+                        '_joinData' => ['article_id' => 1, 'tag_id' => 2],
+                        'description' => 'Another big description',
+                        'created' => new Time('2016-01-01 00:00'),
                     ]
                 ]
             ],
@@ -588,12 +594,16 @@ class QueryTest extends TestCase
                     [
                         'id' => 1,
                         'name' => 'tag1',
-                        '_joinData' => ['article_id' => 2, 'tag_id' => 1]
+                        '_joinData' => ['article_id' => 2, 'tag_id' => 1],
+                        'description' => 'A big description',
+                        'created' => new Time('2016-01-01 00:00'),
                     ],
                     [
                         'id' => 3,
                         'name' => 'tag3',
-                        '_joinData' => ['article_id' => 2, 'tag_id' => 3]
+                        '_joinData' => ['article_id' => 2, 'tag_id' => 3],
+                        'description' => 'Yet another one',
+                        'created' => new Time('2016-01-01 00:00'),
                     ]
                 ]
             ],
@@ -631,7 +641,9 @@ class QueryTest extends TestCase
                     [
                         'id' => 3,
                         'name' => 'tag3',
-                        '_joinData' => ['article_id' => 2, 'tag_id' => 3]
+                        '_joinData' => ['article_id' => 2, 'tag_id' => 3],
+                        'description' => 'Yet another one',
+                        'created' => new Time('2016-01-01 00:00'),
                     ]
                 ]
             ],
@@ -745,6 +757,8 @@ class QueryTest extends TestCase
                     'Tags' => [
                         'id' => 3,
                         'name' => 'tag3',
+                        'description' => 'Yet another one',
+                        'created' => new Time('2016-01-01 00:00'),
                     ],
                     'ArticlesTags' => ['article_id' => 2, 'tag_id' => 3]
                 ]
@@ -770,6 +784,8 @@ class QueryTest extends TestCase
                     'Tags' => [
                         'id' => 2,
                         'name' => 'tag2',
+                        'description' => 'Another big description',
+                        'created' => new Time('2016-01-01 00:00'),
                     ],
                     'ArticlesTags' => ['article_id' => 1, 'tag_id' => 2]
                 ]
@@ -806,6 +822,8 @@ class QueryTest extends TestCase
                     'tags' => [
                         'id' => 2,
                         'name' => 'tag2',
+                        'description' => 'Another big description',
+                        'created' => new Time('2016-01-01 00:00'),
                     ],
                     'articles' => [
                         'id' => 1,
@@ -815,9 +833,9 @@ class QueryTest extends TestCase
                         'published' => 'Y'
                     ],
                     'ArticlesTags' => [
-                            'article_id' => 1,
-                            'tag_id' => 2
-                        ]
+                        'article_id' => 1,
+                        'tag_id' => 2
+                    ]
                 ]
             ]
         ];
@@ -833,7 +851,7 @@ class QueryTest extends TestCase
     {
         $query = new Query($this->connection, $this->table);
 
-        $stmt = $this->getMock('Cake\Database\StatementInterface');
+        $stmt = $this->getMockBuilder('Cake\Database\StatementInterface')->getMock();
         $results = new ResultSet($query, $stmt);
         $query->setResult($results);
         $this->assertSame($results, $query->all());
@@ -1259,16 +1277,22 @@ class QueryTest extends TestCase
         $expected = [
             'id' => 1,
             'name' => 'tag1',
-            '_joinData' => ['article_id' => 1, 'tag_id' => 1]
+            '_joinData' => ['article_id' => 1, 'tag_id' => 1],
+            'description' => 'A big description',
+            'created' => new Time('2016-01-01 00:00'),
         ];
         $this->assertEquals($expected, $first->tags[0]->toArray());
+        $this->assertInstanceOf(Time::class, $first->tags[0]->created);
 
         $expected = [
             'id' => 2,
             'name' => 'tag2',
-            '_joinData' => ['article_id' => 1, 'tag_id' => 2]
+            '_joinData' => ['article_id' => 1, 'tag_id' => 2],
+            'description' => 'Another big description',
+            'created' => new Time('2016-01-01 00:00'),
         ];
         $this->assertEquals($expected, $first->tags[1]->toArray());
+        $this->assertInstanceOf(Time::class, $first->tags[1]->created);
     }
 
     /**
@@ -1286,13 +1310,16 @@ class QueryTest extends TestCase
         $table->belongsToMany('Tags');
 
         $articlesTags
-            ->eventManager()
-            ->attach(function ($event, $query) {
+            ->getEventManager()
+            ->on('Model.beforeFind', function (Event $event, $query) {
                 $query->formatResults(function ($results) {
+                    foreach ($results as $result) {
+                        $result->beforeFind = true;
+                    }
+
                     return $results;
                 });
-            }, 'Model.beforeFind');
-
+            });
 
         $query = new Query($this->connection, $table);
 
@@ -1310,16 +1337,30 @@ class QueryTest extends TestCase
         $expected = [
             'id' => 1,
             'name' => 'tag1',
-            '_joinData' => ['article_id' => 1, 'tag_id' => 1]
+            '_joinData' => [
+                'article_id' => 1,
+                'tag_id' => 1,
+                'beforeFind' => true,
+            ],
+            'description' => 'A big description',
+            'created' => new Time('2016-01-01 00:00'),
         ];
         $this->assertEquals($expected, $first->tags[0]->toArray());
+        $this->assertInstanceOf(Time::class, $first->tags[0]->created);
 
         $expected = [
             'id' => 2,
             'name' => 'tag2',
-            '_joinData' => ['article_id' => 1, 'tag_id' => 2]
+            '_joinData' => [
+                'article_id' => 1,
+                'tag_id' => 2,
+                'beforeFind' => true,
+            ],
+            'description' => 'Another big description',
+            'created' => new Time('2016-01-01 00:00'),
         ];
         $this->assertEquals($expected, $first->tags[1]->toArray());
+        $this->assertInstanceOf(Time::class, $first->tags[0]->created);
     }
 
     /**
@@ -1573,12 +1614,12 @@ class QueryTest extends TestCase
     {
         $table = TableRegistry::get('Articles');
         $table->hasMany('Comments');
-        $table->eventManager()
-            ->attach(function ($event, $query) {
+        $table->getEventManager()
+            ->on('Model.beforeFind', function (Event $event, $query) {
                 $query
                     ->limit(1)
                     ->order(['Articles.title' => 'DESC']);
-            }, 'Model.beforeFind');
+            });
 
         $query = $table->find();
         $result = $query->count();
@@ -1594,12 +1635,12 @@ class QueryTest extends TestCase
     {
         $callCount = 0;
         $table = TableRegistry::get('Articles');
-        $table->eventManager()
-            ->attach(function ($event, $query) use (&$callCount) {
+        $table->getEventManager()
+            ->on('Model.beforeFind', function (Event $event, $query) use (&$callCount) {
                 $valueBinder = new ValueBinder();
                 $query->sql($valueBinder);
                 $callCount++;
-            }, 'Model.beforeFind');
+            });
 
         $query = $table->find();
         $valueBinder = new ValueBinder();
@@ -1638,6 +1679,7 @@ class QueryTest extends TestCase
             ->group(['author_id'])
             ->counter(function ($q) use ($query) {
                 $this->assertNotSame($q, $query);
+
                 return $q->select([], true)->group([], true)->count();
             });
 
@@ -1660,7 +1702,7 @@ class QueryTest extends TestCase
             ->execute();
 
         $this->assertInstanceOf('Cake\Database\StatementInterface', $result);
-        $this->assertTrue($result->rowCount() > 0);
+        $this->assertGreaterThan(0, $result->rowCount());
     }
 
     /**
@@ -1681,7 +1723,7 @@ class QueryTest extends TestCase
             ->execute();
 
         $this->assertInstanceOf('Cake\Database\StatementInterface', $result);
-        $this->assertTrue($result->rowCount() > 0);
+        $this->assertGreaterThan(0, $result->rowCount());
     }
 
     /**
@@ -1725,7 +1767,7 @@ class QueryTest extends TestCase
             ->execute();
 
         $this->assertInstanceOf('Cake\Database\StatementInterface', $result);
-        $this->assertTrue($result->rowCount() > 0);
+        $this->assertGreaterThan(0, $result->rowCount());
     }
 
     /**
@@ -1739,6 +1781,7 @@ class QueryTest extends TestCase
         $identity = function ($a) {
             return $a;
         };
+
         return [
             ['filter', $identity],
             ['reject', $identity],
@@ -1762,6 +1805,34 @@ class QueryTest extends TestCase
     }
 
     /**
+     * testClearContain
+     *
+     * @return void
+     */
+    public function testClearContain()
+    {
+        $query = $this->getMockBuilder('\Cake\ORM\Query')
+            ->setMethods(['all'])
+            ->setConstructorArgs([$this->connection, $this->table])
+            ->getMock();
+
+        $query->contain([
+            'Articles'
+        ]);
+
+        $result = $query->contain();
+        $this->assertInternalType('array', $result);
+        $this->assertNotEmpty($result);
+
+        $result = $query->clearContain();
+        $this->assertInstanceOf(Query::class, $result);
+
+        $result = $query->contain();
+        $this->assertInternalType('array', $result);
+        $this->assertEmpty($result);
+    }
+
+    /**
      * Tests that query can proxy collection methods
      *
      * @dataProvider collectionMethodsProvider
@@ -1769,13 +1840,14 @@ class QueryTest extends TestCase
      */
     public function testCollectionProxy($method, $arg)
     {
-        $query = $this->getMock(
-            '\Cake\ORM\Query',
-            ['all'],
-            [$this->connection, $this->table]
-        );
+        $query = $this->getMockBuilder('\Cake\ORM\Query')
+            ->setMethods(['all'])
+            ->setConstructorArgs([$this->connection, $this->table])
+            ->getMock();
         $query->select();
-        $resultSet = $this->getMock('\Cake\ORM\ResultSet', [], [$query, null]);
+        $resultSet = $this->getMockbuilder('\Cake\ORM\ResultSet')
+            ->setConstructorArgs([$query, null])
+            ->getMock();
         $query->expects($this->once())
             ->method('all')
             ->will($this->returnValue($resultSet));
@@ -1790,7 +1862,7 @@ class QueryTest extends TestCase
     }
 
     /**
-     * Tests that calling an inexistent method in query throws an
+     * Tests that calling an non-existent method in query throws an
      * exception
      *
      * @expectedException \BadMethodCallException
@@ -1823,17 +1895,18 @@ class QueryTest extends TestCase
      */
     public function testCacheReadIntegration()
     {
-        $query = $this->getMock(
-            '\Cake\ORM\Query',
-            ['execute'],
-            [$this->connection, $this->table]
-        );
-        $resultSet = $this->getMock('\Cake\ORM\ResultSet', [], [$query, null]);
+        $query = $this->getMockBuilder('\Cake\ORM\Query')
+            ->setMethods(['execute'])
+            ->setConstructorArgs([$this->connection, $this->table])
+            ->getMock();
+        $resultSet = $this->getMockBuilder('\Cake\ORM\ResultSet')
+            ->setConstructorArgs([$query, null])
+            ->getMock();
 
         $query->expects($this->never())
             ->method('execute');
 
-        $cacher = $this->getMock('Cake\Cache\CacheEngine');
+        $cacher = $this->getMockBuilder('Cake\Cache\CacheEngine')->getMock();
         $cacher->expects($this->once())
             ->method('read')
             ->with('my_key')
@@ -1858,7 +1931,7 @@ class QueryTest extends TestCase
 
         $query->select(['id', 'title']);
 
-        $cacher = $this->getMock('Cake\Cache\CacheEngine');
+        $cacher = $this->getMockBuilder('Cake\Cache\CacheEngine')->getMock();
         $cacher->expects($this->once())
             ->method('write')
             ->with(
@@ -1873,7 +1946,7 @@ class QueryTest extends TestCase
     }
 
     /**
-     * Integration test for query caching usigna  real cache engine and
+     * Integration test for query caching using a real cache engine and
      * a formatResults callback
      *
      * @return void
@@ -1935,6 +2008,32 @@ class QueryTest extends TestCase
             ->contain(['articles' => function ($q) {
                 return $q->where(['articles.id' => 1]);
             }]);
+
+        $ids = [];
+        foreach ($query as $entity) {
+            foreach ((array)$entity->articles as $article) {
+                $ids[] = $article->id;
+            }
+        }
+        $this->assertEquals([1], array_unique($ids));
+    }
+
+    /**
+     * Integration test that uses the contain signature that is the same as the
+     * matching signature
+     *
+     * @return void
+     */
+    public function testContainSecondSignature()
+    {
+        $table = TableRegistry::get('authors');
+        $table->hasMany('articles');
+        $query = new Query($this->connection, $table);
+        $query
+            ->select()
+            ->contain('articles', function ($q) {
+                return $q->where(['articles.id' => 1]);
+            });
 
         $ids = [];
         foreach ($query as $entity) {
@@ -2065,6 +2164,7 @@ class QueryTest extends TestCase
         $query = new Query($this->connection, $table);
         $query->select()->formatResults(function ($results) {
             $this->assertInstanceOf('Cake\ORM\ResultSet', $results);
+
             return $results->indexBy('id');
         });
         $this->assertEquals([1, 2, 3, 4], array_keys($query->toArray()));
@@ -2081,6 +2181,7 @@ class QueryTest extends TestCase
         $query = new Query($this->connection, $table);
         $query->select()->formatResults(function ($results) {
             $this->assertInstanceOf('Cake\ORM\ResultSet', $results);
+
             return $results->indexBy('id');
         });
 
@@ -2169,7 +2270,7 @@ class QueryTest extends TestCase
         $query->where(['dirty' => 'cache']);
 
         $secondResult = $query->count();
-        $this->assertSame(2, $secondResult, 'The query cache should be droppped with any modification');
+        $this->assertSame(2, $secondResult, 'The query cache should be dropped with any modification');
 
         $thirdResult = $query->count();
         $this->assertSame(2, $thirdResult, 'The query has not been modified, the cached value is valid');
@@ -2192,12 +2293,14 @@ class QueryTest extends TestCase
                     ->formatResults(function ($authors) {
                         return $authors->map(function ($author) {
                             $author->idCopy = $author->id;
+
                             return $author;
                         });
                     })
                     ->formatResults(function ($authors) {
                         return $authors->map(function ($author) {
                             $author->idCopy = $author->idCopy + 2;
+
                             return $author;
                         });
                     });
@@ -2227,12 +2330,14 @@ class QueryTest extends TestCase
                 ->formatResults(function ($results) {
                     return $results->map(function ($result) {
                         $result->idCopy = $result->id;
+
                         return $result;
                     });
                 })
                 ->formatResults(function ($results) {
                     return $results->map(function ($result) {
                         $result->idCopy = $result->idCopy + 2;
+
                         return $result;
                     });
                 });
@@ -2274,6 +2379,7 @@ class QueryTest extends TestCase
             return $q->formatResults(function ($results) {
                 return $results->map(function ($tag) {
                     $tag->name .= ' - visited';
+
                     return $tag;
                 });
             });
@@ -2458,16 +2564,45 @@ class QueryTest extends TestCase
         $table->hasMany('articles');
         $query = $table->find()->contain(['articles' => function ($q) {
             $this->assertTrue($q->eagerLoaded());
+
             return $q;
         }]);
         $this->assertFalse($query->eagerLoaded());
 
-        $table->eventManager()->attach(function ($e, $q, $o, $primary) {
+        $table->getEventManager()->attach(function ($e, $q, $o, $primary) {
             $this->assertTrue($primary);
         }, 'Model.beforeFind');
 
         TableRegistry::get('articles')
-            ->eventManager()->attach(function ($e, $q, $o, $primary) {
+            ->getEventManager()->attach(function ($e, $q, $o, $primary) {
+                $this->assertFalse($primary);
+            }, 'Model.beforeFind');
+        $query->all();
+    }
+
+    /**
+     * Tests that the isEagerLoaded function works and is transmitted correctly to eagerly
+     * loaded associations
+     *
+     * @return void
+     */
+    public function testIsEagerLoaded()
+    {
+        $table = TableRegistry::get('authors');
+        $table->hasMany('articles');
+        $query = $table->find()->contain(['articles' => function ($q) {
+            $this->assertTrue($q->isEagerLoaded());
+
+            return $q;
+        }]);
+        $this->assertFalse($query->isEagerLoaded());
+
+        $table->getEventManager()->attach(function ($e, $q, $o, $primary) {
+            $this->assertTrue($primary);
+        }, 'Model.beforeFind');
+
+        TableRegistry::get('articles')
+            ->getEventManager()->attach(function ($e, $q, $o, $primary) {
                 $this->assertFalse($primary);
             }, 'Model.beforeFind');
         $query->all();
@@ -2661,12 +2796,20 @@ class QueryTest extends TestCase
         $query->offset(10)
             ->limit(1)
             ->order(['Articles.id' => 'DESC'])
-            ->contain(['Comments']);
+            ->contain(['Comments'])
+            ->matching('Comments');
         $copy = $query->cleanCopy();
 
         $this->assertNotSame($copy, $query);
-        $this->assertNotSame($copy->eagerLoader(), $query->eagerLoader());
-        $this->assertNotEmpty($copy->eagerLoader()->contain());
+        $copyLoader = $copy->getEagerLoader();
+        $loader = $query->getEagerLoader();
+        $this->assertEquals($copyLoader, $loader, 'should be equal');
+        $this->assertNotSame($copyLoader, $loader, 'should be clones');
+        $this->assertNotSame(
+            $this->readAttribute($copyLoader, '_matching'),
+            $this->readAttribute($loader, '_matching'),
+            'should be clones'
+        );
         $this->assertNull($copy->clause('offset'));
         $this->assertNull($copy->clause('limit'));
         $this->assertNull($copy->clause('order'));
@@ -2701,12 +2844,12 @@ class QueryTest extends TestCase
     {
         $table = TableRegistry::get('Articles');
         $table->hasMany('Comments');
-        $table->eventManager()
-            ->attach(function ($event, $query) {
+        $table->getEventManager()
+            ->on('Model.beforeFind', function (Event $event, $query) {
                 $query
                     ->limit(5)
                     ->order(['Articles.title' => 'DESC']);
-            }, 'Model.beforeFind');
+            });
 
         $query = $table->find();
         $query->offset(10)
@@ -2722,11 +2865,11 @@ class QueryTest extends TestCase
     }
 
     /**
-     * Test that finder options sent through via contain are sent to custom finder.
+     * Test that finder options sent through via contain are sent to custom finder for belongsTo associations.
      *
      * @return void
      */
-    public function testContainFinderCanSpecifyOptions()
+    public function testContainFinderBelongsTo()
     {
         $table = TableRegistry::get('Articles');
         $table->belongsTo(
@@ -2753,6 +2896,111 @@ class QueryTest extends TestCase
 
         $this->assertEmpty($resultWithoutAuthor->first()['author']);
         $this->assertEquals($authorId, $resultWithAuthor->first()['author']['id']);
+    }
+
+    /**
+     * Test that finder options sent through via contain are sent to custom finder for hasMany associations.
+     *
+     * @return void
+     */
+    public function testContainFinderHasMany()
+    {
+        $table = TableRegistry::get('Authors');
+        $table->hasMany(
+            'Articles',
+            ['className' => 'TestApp\Model\Table\ArticlesTable']
+        );
+
+        $newArticle = $table->newEntity([
+            'author_id' => 1,
+            'title' => 'Fourth Article',
+            'body' => 'Fourth Article Body',
+            'published' => 'N'
+        ]);
+        $table->save($newArticle);
+
+        $resultWithArticles = $table->find('all')
+            ->where(['id' => 1])
+            ->contain([
+                'Articles' => [
+                    'finder' => 'published'
+                ]
+            ]);
+
+        $resultWithArticlesArray = $table->find('all')
+            ->where(['id' => 1])
+            ->contain([
+                'Articles' => [
+                    'finder' => ['published' => []]
+                ]
+            ]);
+
+        $resultWithArticlesArrayOptions = $table->find('all')
+            ->where(['id' => 1])
+            ->contain([
+                'Articles' => [
+                    'finder' => [
+                        'published' => [
+                            'title' => 'First Article'
+                        ]
+                    ]
+                ]
+            ]);
+
+        $resultWithoutArticles = $table->find('all')
+            ->where(['id' => 1])
+            ->contain([
+                'Articles' => [
+                    'finder' => [
+                        'published' => [
+                            'title' => 'Foo'
+                        ]
+                    ]
+                ]
+            ]);
+
+        $this->assertCount(2, $resultWithArticles->first()->articles);
+        $this->assertCount(2, $resultWithArticlesArray->first()->articles);
+
+        $this->assertCount(1, $resultWithArticlesArrayOptions->first()->articles);
+        $this->assertSame(
+            'First Article',
+            $resultWithArticlesArrayOptions->first()->articles[0]->title
+        );
+
+        $this->assertCount(0, $resultWithoutArticles->first()->articles);
+    }
+
+    /**
+     * Test that using a closure for a custom finder for contain works.
+     *
+     * @return void
+     */
+    public function testContainFinderHasManyClosure()
+    {
+        $table = TableRegistry::get('Authors');
+        $table->hasMany(
+            'Articles',
+            ['className' => 'TestApp\Model\Table\ArticlesTable']
+        );
+
+        $newArticle = $table->newEntity([
+            'author_id' => 1,
+            'title' => 'Fourth Article',
+            'body' => 'Fourth Article Body',
+            'published' => 'N'
+        ]);
+        $table->save($newArticle);
+
+        $resultWithArticles = $table->find('all')
+            ->where(['id' => 1])
+            ->contain([
+                'Articles' => function ($q) {
+                    return $q->find('published');
+                }
+            ]);
+
+        $this->assertCount(2, $resultWithArticles->first()->articles);
     }
 
     /**
@@ -2875,6 +3123,30 @@ class QueryTest extends TestCase
     }
 
     /**
+     * Tests that it is possible to find large numeric values.
+     *
+     * @return void
+     */
+    public function testSelectLargeNumbers()
+    {
+        $this->loadFixtures('Datatypes');
+
+        $big = 1234567890123456789.2;
+        $table = TableRegistry::get('Datatypes');
+        $entity = $table->newEntity([]);
+        $entity->cost = $big;
+        $entity->tiny = 1;
+        $entity->small = 10;
+
+        $table->save($entity);
+        $out = $table->find()->where([
+            'cost' => $big
+        ])->first();
+        $this->assertNotEmpty($out, 'Should get a record');
+        $this->assertSame(sprintf('%F', $big), sprintf('%F', $out->cost));
+    }
+
+    /**
      * Tests that select() can be called with Table and Association
      * instance
      *
@@ -2905,6 +3177,22 @@ class QueryTest extends TestCase
 
         $this->assertNotEmpty($result);
         $this->assertEquals($expected, $result);
+    }
+
+    /**
+     * Test that simple aliased field have results typecast.
+     *
+     * @return void
+     */
+    public function testSelectTypeInferSimpleAliases()
+    {
+        $table = TableRegistry::get('comments');
+        $result = $table
+            ->find()
+            ->select(['created', 'updated_time' => 'updated'])
+            ->first();
+        $this->assertInstanceOf(Time::class, $result->created);
+        $this->assertInstanceOf(Time::class, $result->updated_time);
     }
 
     /**
@@ -2979,22 +3267,22 @@ class QueryTest extends TestCase
 
         $results = $table
             ->find()
-            ->select(['total_articles' => 'count(articles.id)'])
+            ->select([
+                'authors.id',
+                'tagged_articles' => 'count(tags.id)'
+            ])
             ->leftJoinWith('articles.tags', function ($q) {
                 return $q->where(['tags.name' => 'tag3']);
             })
-            ->autoFields(true)
-            ->group(['authors.id', 'authors.name']);
+            ->group(['authors.id']);
 
         $expected = [
-            1 => 2,
+            1 => 0,
             2 => 0,
             3 => 1,
             4 => 0
         ];
-        $this->assertEquals($expected, $results->combine('id', 'total_articles')->toArray());
-        $fields = ['total_articles', 'id', 'name'];
-        $this->assertEquals($fields, array_keys($results->first()->toArray()));
+        $this->assertEquals($expected, $results->combine('id', 'tagged_articles')->toArray());
     }
 
     /**
@@ -3016,7 +3304,6 @@ class QueryTest extends TestCase
             })
             ->autoFields(true)
             ->where(['ArticlesTags.tag_id' => 3])
-            ->distinct(['authors.id'])
             ->all();
 
         $expected = ['id' => 2, 'title' => 'Second Article'];
@@ -3152,8 +3439,9 @@ class QueryTest extends TestCase
             ->hydrate(false)
             ->notMatching('tags', function ($q) {
                 return $q->where(['tags.name' => 'tag2']);
-            })
-            ->toArray();
+            });
+
+        $results = $results->toArray();
 
         $expected = [
             [
@@ -3187,6 +3475,7 @@ class QueryTest extends TestCase
 
         $results = $table->find()
             ->hydrate(false)
+            ->select('authors.id')
             ->notMatching('articles.tags', function ($q) {
                 return $q->where(['tags.name' => 'tag3']);
             })

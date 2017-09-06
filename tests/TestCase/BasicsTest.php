@@ -2,23 +2,22 @@
 /**
  * BasicsTest file
  *
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
  * @since         1.2.0
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 namespace Cake\Test\TestCase;
 
-use Cake\Core\Configure;
 use Cake\Event\EventManager;
-use Cake\Network\Response;
+use Cake\Http\Response;
 use Cake\TestSuite\TestCase;
 
 require_once CAKE . 'basics.php';
@@ -224,7 +223,7 @@ class BasicsTest extends TestCase
     public function testDebug()
     {
         ob_start();
-        debug('this-is-a-test', false);
+        $this->assertEquals('this-is-a-test', debug('this-is-a-test', false));
         $result = ob_get_clean();
         $expectedText = <<<EXPECTED
 %s (line %d)
@@ -238,7 +237,8 @@ EXPECTED;
         $this->assertEquals($expected, $result);
 
         ob_start();
-        debug('<div>this-is-a-test</div>', true);
+        $value = '<div>this-is-a-test</div>';
+        $this->assertSame($value, debug($value, true));
         $result = ob_get_clean();
         $expectedHtml = <<<EXPECTED
 <div class="cake-debug-output">
@@ -369,7 +369,7 @@ EXPECTED;
         $this->assertEquals($expected, $result);
 
         ob_start();
-        debug(false, false, false);
+        $this->assertFalse(debug(false, false, false));
         $result = ob_get_clean();
         $expected = <<<EXPECTED
 
@@ -390,25 +390,25 @@ EXPECTED;
     public function testPr()
     {
         ob_start();
-        pr(true);
+        $this->assertTrue(pr(true));
         $result = ob_get_clean();
         $expected = "\n1\n\n";
         $this->assertEquals($expected, $result);
 
         ob_start();
-        pr(false);
+        $this->assertFalse(pr(false));
         $result = ob_get_clean();
         $expected = "\n\n\n";
         $this->assertEquals($expected, $result);
 
         ob_start();
-        pr(null);
+        $this->assertNull(pr(null));
         $result = ob_get_clean();
         $expected = "\n\n\n";
         $this->assertEquals($expected, $result);
 
         ob_start();
-        pr(123);
+        $this->assertSame(123, pr(123));
         $result = ob_get_clean();
         $expected = "\n123\n\n";
         $this->assertEquals($expected, $result);
@@ -440,25 +440,25 @@ EXPECTED;
     public function testPj()
     {
         ob_start();
-        pj(true);
+        $this->assertTrue(pj(true));
         $result = ob_get_clean();
         $expected = "\ntrue\n\n";
         $this->assertEquals($expected, $result);
 
         ob_start();
-        pj(false);
+        $this->assertFalse(pj(false));
         $result = ob_get_clean();
         $expected = "\nfalse\n\n";
         $this->assertEquals($expected, $result);
 
         ob_start();
-        pj(null);
+        $this->assertNull(pj(null));
         $result = ob_get_clean();
         $expected = "\nnull\n\n";
         $this->assertEquals($expected, $result);
 
         ob_start();
-        pj(123);
+        $this->assertSame(123, pj(123));
         $result = ob_get_clean();
         $expected = "\n123\n\n";
         $this->assertEquals($expected, $result);
@@ -476,7 +476,8 @@ EXPECTED;
         $this->assertEquals($expected, $result);
 
         ob_start();
-        pj(['this' => 'is', 'a' => 'test', 123 => 456]);
+        $value = ['this' => 'is', 'a' => 'test', 123 => 456];
+        $this->assertSame($value, pj($value));
         $result = ob_get_clean();
         $expected = "\n{\n    \"this\": \"is\",\n    \"a\": \"test\",\n    \"123\": 456\n}\n\n";
         $this->assertEquals($expected, $result);
@@ -574,7 +575,10 @@ EXPECTED;
      */
     public function testEventManagerReset1()
     {
-        return EventManager::instance();
+        $eventManager = EventManager::instance();
+        $this->assertInstanceOf('Cake\Event\EventManager', $eventManager);
+
+        return $eventManager;
     }
 
     /**
@@ -585,6 +589,7 @@ EXPECTED;
      */
     public function testEventManagerReset2($prevEventManager)
     {
+        $this->assertInstanceOf('Cake\Event\EventManager', $prevEventManager);
         $this->assertNotSame($prevEventManager, EventManager::instance());
     }
 }

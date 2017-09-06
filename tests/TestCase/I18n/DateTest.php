@@ -1,16 +1,16 @@
 <?php
 /**
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
  * @since         1.2.0
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 namespace Cake\Test\TestCase\I18n;
 
@@ -39,7 +39,7 @@ class DateTest extends TestCase
     public function setUp()
     {
         parent::setUp();
-        $this->locale = Date::$defaultLocale;
+        $this->locale = Date::getDefaultLocale();
     }
 
     /**
@@ -50,8 +50,8 @@ class DateTest extends TestCase
     public function tearDown()
     {
         parent::tearDown();
-        Date::$defaultLocale = $this->locale;
-        FrozenDate::$defaultLocale = $this->locale;
+        Date::setDefaultLocale($this->locale);
+        FrozenDate::setDefaultLocale($this->locale);
         date_default_timezone_set('UTC');
     }
 
@@ -105,7 +105,7 @@ class DateTest extends TestCase
         $expected = '00:00:00';
         $this->assertEquals($expected, $result);
 
-        $class::$defaultLocale = 'fr-FR';
+        $class::setDefaultLocale('fr-FR');
         $result = $time->i18nFormat(\IntlDateFormatter::FULL);
         $result = str_replace(' à', '', $result);
         $expected = 'jeudi 14 janvier 2010 00:00:00 UTC';
@@ -113,6 +113,11 @@ class DateTest extends TestCase
 
         $result = $time->i18nFormat(\IntlDateFormatter::FULL, null, 'es-ES');
         $this->assertContains('14 de enero de 2010', $result, 'Default locale should not be used');
+
+        $time = new $class('2014-01-01T00:00:00Z');
+        $result = $time->i18nFormat(\IntlDateFormatter::FULL, null, 'en-US');
+        $expected = 'Wednesday, January 1, 2014 at 12:00:00 AM GMT';
+        $this->assertEquals($expected, $result);
     }
 
     /**
@@ -150,8 +155,12 @@ class DateTest extends TestCase
      */
     public function testJsonSerialize($class)
     {
+        if (version_compare(INTL_ICU_VERSION, '50.0', '<')) {
+            $this->markTestSkipped('ICU 5x is needed');
+        }
+
         $date = new $class('2015-11-06 11:32:45');
-        $this->assertEquals('"2015-11-06T00:00:00+0000"', json_encode($date));
+        $this->assertEquals('"2015-11-06T00:00:00+00:00"', json_encode($date));
     }
 
     /**
@@ -165,7 +174,7 @@ class DateTest extends TestCase
         $date = $class::parseDate('11/6/15');
         $this->assertEquals('2015-11-06 00:00:00', $date->format('Y-m-d H:i:s'));
 
-        $class::$defaultLocale = 'fr-FR';
+        $class::setDefaultLocale('fr-FR');
         $date = $class::parseDate('13 10, 2015');
         $this->assertEquals('2015-10-13 00:00:00', $date->format('Y-m-d H:i:s'));
     }
@@ -181,7 +190,7 @@ class DateTest extends TestCase
         $date = $class::parseDate('11/6/15 12:33:12');
         $this->assertEquals('2015-11-06 00:00:00', $date->format('Y-m-d H:i:s'));
 
-        $class::$defaultLocale = 'fr-FR';
+        $class::setDefaultLocale('fr-FR');
         $date = $class::parseDate('13 10, 2015 12:54:12');
         $this->assertEquals('2015-10-13 00:00:00', $date->format('Y-m-d H:i:s'));
     }
@@ -503,5 +512,38 @@ class DateTest extends TestCase
         date_default_timezone_set('Europe/Paris');
         $result = $class::parseDate('25-02-2016', 'd-M-y');
         $this->assertEquals('25-02-2016', $result->format('d-m-Y'));
+    }
+
+    /**
+     * Tests the default locale setter.
+     *
+     * @dataProvider classNameProvider
+     * @return void
+     */
+    public function testGetSetDefaultLocale($class)
+    {
+        $class::setDefaultLocale('fr-FR');
+        $this->assertSame('fr-FR', $class::getDefaultLocale());
+    }
+
+    /**
+     * Tests the default locale setter.
+     *
+     * @dataProvider classNameProvider
+     * @return void
+     */
+    public function testDefaultLocaleEffectsFormatting($class)
+    {
+        $result = $class::parseDate('12/03/2015');
+        $this->assertEquals('Dec 3, 2015', $result->nice());
+
+        $class::setDefaultLocale('fr-FR');
+
+        $result = $class::parseDate('12/03/2015');
+        $this->assertEquals('12 mars 2015', $result->nice());
+
+        $expected = 'Y-m-d';
+        $result = $class::parseDate('12/03/2015');
+        $this->assertEquals('2015-03-12', $result->format($expected));
     }
 }

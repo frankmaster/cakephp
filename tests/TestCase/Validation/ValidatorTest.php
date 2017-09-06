@@ -1,16 +1,16 @@
 <?php
 /**
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
  * @since         3.0.0
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 namespace Cake\Test\TestCase\Validation;
 
@@ -20,7 +20,6 @@ use Cake\Validation\Validator;
 
 /**
  * Tests Validator class
- *
  */
 class ValidatorTest extends TestCase
 {
@@ -32,7 +31,7 @@ class ValidatorTest extends TestCase
      */
     public function testAddingRulesToField()
     {
-        $validator = new Validator;
+        $validator = new Validator();
         $validator->add('title', 'not-blank', ['rule' => 'notBlank']);
         $set = $validator->field('title');
         $this->assertInstanceOf('Cake\Validation\ValidationSet', $set);
@@ -74,6 +73,7 @@ class ValidatorTest extends TestCase
         $inner = new Validator();
         $inner->add('username', 'not-blank', ['rule' => function () use ($inner, $validator) {
             $this->assertSame($validator->providers(), $inner->providers(), 'Providers should match');
+
             return false;
         }]);
         $validator->addNested('user', $inner);
@@ -110,6 +110,7 @@ class ValidatorTest extends TestCase
         $inner = new Validator();
         $inner->add('comment', 'not-blank', ['rule' => function () use ($inner, $validator) {
             $this->assertSame($validator->providers(), $inner->providers(), 'Providers should match');
+
             return false;
         }]);
         $validator->addNestedMany('comments', $inner);
@@ -125,7 +126,7 @@ class ValidatorTest extends TestCase
      */
     public function testFieldDefault()
     {
-        $validator = new Validator;
+        $validator = new Validator();
         $this->assertFalse($validator->hasField('foo'));
 
         $field = $validator->field('foo');
@@ -141,7 +142,7 @@ class ValidatorTest extends TestCase
      */
     public function testFieldSetter()
     {
-        $validator = new Validator;
+        $validator = new Validator();
         $validationSet = new ValidationSet;
         $validator->field('thing', $validationSet);
         $this->assertSame($validationSet, $validator->field('thing'));
@@ -154,7 +155,7 @@ class ValidatorTest extends TestCase
      */
     public function testRemove()
     {
-        $validator = new Validator;
+        $validator = new Validator();
         $validator->add('title', 'not-blank', ['rule' => 'notBlank']);
         $validator->add('title', 'foo', ['rule' => 'bar']);
         $this->assertCount(2, $validator->field('title'));
@@ -177,7 +178,7 @@ class ValidatorTest extends TestCase
      */
     public function testRequirePresence()
     {
-        $validator = new Validator;
+        $validator = new Validator();
         $this->assertSame($validator, $validator->requirePresence('title'));
         $this->assertTrue($validator->field('title')->isPresenceRequired());
 
@@ -192,19 +193,58 @@ class ValidatorTest extends TestCase
     }
 
     /**
+     * Tests the requirePresence method
+     *
+     * @return void
+     */
+    public function testRequirePresenceAsArray()
+    {
+        $validator = new Validator();
+        $validator->requirePresence(['title', 'created']);
+        $this->assertTrue($validator->field('title')->isPresenceRequired());
+        $this->assertTrue($validator->field('created')->isPresenceRequired());
+
+        $validator->requirePresence([
+            'title' => [
+                'mode' => false
+            ],
+            'content' => [
+                'mode' => 'update'
+            ],
+            'subject'
+        ], true);
+        $this->assertFalse($validator->field('title')->isPresenceRequired());
+        $this->assertEquals('update', $validator->field('content')->isPresenceRequired());
+        $this->assertTrue($validator->field('subject')->isPresenceRequired());
+    }
+
+    /**
+     * Tests the requirePresence failure case
+     *
+     * @expectedException \InvalidArgumentException
+     * @return void
+     */
+    public function testRequirePresenceAsArrayFailure()
+    {
+        $validator = new Validator();
+        $validator->requirePresence(['title' => 'derp', 'created' => false]);
+    }
+
+    /**
      * Tests the requirePresence method when passing a callback
      *
      * @return void
      */
     public function testRequirePresenceCallback()
     {
-        $validator = new Validator;
+        $validator = new Validator();
         $require = true;
         $validator->requirePresence('title', function ($context) use (&$require) {
             $this->assertEquals([], $context['data']);
             $this->assertEquals([], $context['providers']);
             $this->assertEquals('title', $context['field']);
             $this->assertTrue($context['newRecord']);
+
             return $require;
         });
         $this->assertTrue($validator->isPresenceRequired('title', true));
@@ -220,7 +260,7 @@ class ValidatorTest extends TestCase
      */
     public function testIsPresenceRequired()
     {
-        $validator = new Validator;
+        $validator = new Validator();
         $this->assertSame($validator, $validator->requirePresence('title'));
         $this->assertTrue($validator->isPresenceRequired('title', true));
         $this->assertTrue($validator->isPresenceRequired('title', false));
@@ -245,7 +285,7 @@ class ValidatorTest extends TestCase
      */
     public function testErrorsWithPresenceRequired()
     {
-        $validator = new Validator;
+        $validator = new Validator();
         $validator->requirePresence('title');
         $errors = $validator->errors(['foo' => 'something']);
         $expected = ['title' => ['_required' => 'This field is required']];
@@ -255,6 +295,28 @@ class ValidatorTest extends TestCase
 
         $validator->requirePresence('title', false);
         $this->assertEmpty($validator->errors(['foo' => 'bar']));
+    }
+
+    /**
+     * Test that validation on a certain condition generate errors
+     *
+     * @return void
+     */
+    public function testErrorsWithPresenceRequiredOnCreate()
+    {
+        $validator = new Validator();
+        $validator->requirePresence('id', 'update');
+        $validator->allowEmpty('id', 'create');
+        $validator->requirePresence('title');
+
+        $data = [
+            'title' => 'Example title'
+        ];
+
+        $expected = [];
+        $result = $validator->errors($data);
+
+        $this->assertEquals($expected, $result);
     }
 
     /**
@@ -376,10 +438,40 @@ class ValidatorTest extends TestCase
      */
     public function testCustomErrorsWithPresenceRequired()
     {
-        $validator = new Validator;
+        $validator = new Validator();
         $validator->requirePresence('title', true, 'Custom message');
         $errors = $validator->errors(['foo' => 'something']);
         $expected = ['title' => ['_required' => 'Custom message']];
+        $this->assertEquals($expected, $errors);
+    }
+
+    /**
+     * Tests custom error messages generated when a field presence is required
+     *
+     * @return void
+     */
+    public function testCustomErrorsWithPresenceRequiredAsArray()
+    {
+        $validator = new Validator();
+        $validator->requirePresence(['title', 'content'], true, 'Custom message');
+        $errors = $validator->errors(['foo' => 'something']);
+        $expected = [
+            'title' => ['_required' => 'Custom message'],
+            'content' => ['_required' => 'Custom message']
+        ];
+        $this->assertEquals($expected, $errors);
+
+        $validator->requirePresence([
+            'title' => [
+                'message' => 'Test message'
+            ],
+            'content'
+        ], true, 'Custom message');
+        $errors = $validator->errors(['foo' => 'something']);
+        $expected = [
+            'title' => ['_required' => 'Test message'],
+            'content' => ['_required' => 'Custom message']
+        ];
         $this->assertEquals($expected, $errors);
     }
 
@@ -390,7 +482,7 @@ class ValidatorTest extends TestCase
      */
     public function testAllowEmpty()
     {
-        $validator = new Validator;
+        $validator = new Validator();
         $this->assertSame($validator, $validator->allowEmpty('title'));
         $this->assertTrue($validator->field('title')->isEmptyAllowed());
 
@@ -408,7 +500,7 @@ class ValidatorTest extends TestCase
      */
     public function testAllowEmptyDateTime()
     {
-        $validator = new Validator;
+        $validator = new Validator();
         $validator->allowEmpty('created')
             ->add('created', 'date', ['rule' => 'date']);
 
@@ -454,7 +546,7 @@ class ValidatorTest extends TestCase
      */
     public function testAllowEmptyFileFields()
     {
-        $validator = new Validator;
+        $validator = new Validator();
         $validator->allowEmpty('picture')
             ->add('picture', 'file', ['rule' => 'uploadedFile']);
 
@@ -482,18 +574,139 @@ class ValidatorTest extends TestCase
     }
 
     /**
+     * Tests the allowEmpty as array method
+     *
+     * @return void
+     */
+    public function testAllowEmptyAsArray()
+    {
+        $validator = new Validator();
+
+        $validator->allowEmpty([
+            'title',
+            'subject',
+            'posted_at' => [
+                'when' => false,
+                'message' => 'Post time cannot be empty'
+            ],
+            'updated_at' => [
+                'when' => true
+            ],
+            'show_at' => [
+                'when' => 'update'
+            ]
+        ], 'create', 'Cannot be empty');
+        $this->assertEquals('create', $validator->field('title')->isEmptyAllowed());
+        $this->assertEquals('create', $validator->field('subject')->isEmptyAllowed());
+        $this->assertFalse($validator->field('posted_at')->isEmptyAllowed());
+        $this->assertTrue($validator->field('updated_at')->isEmptyAllowed());
+        $this->assertEquals('update', $validator->field('show_at')->isEmptyAllowed());
+
+        $errors = $validator->errors([
+            'title' => '',
+            'subject' => null,
+            'posted_at' => null,
+            'updated_at' => null,
+            'show_at' => ''
+        ], false);
+
+        $expected = [
+            'title' => ['_empty' => 'Cannot be empty'],
+            'subject' => ['_empty' => 'Cannot be empty'],
+            'posted_at' => ['_empty' => 'Post time cannot be empty']
+        ];
+        $this->assertEquals($expected, $errors);
+    }
+
+    /**
+     * Tests the allowEmpty failure case
+     *
+     * @expectedException \InvalidArgumentException
+     * @return void
+     */
+    public function testAllowEmptyAsArrayFailure()
+    {
+        $validator = new Validator();
+        $validator->allowEmpty(['title' => 'derp', 'created' => false]);
+    }
+
+    /**
      * Test the notEmpty() method.
      *
      * @return void
      */
     public function testNotEmpty()
     {
-        $validator = new Validator;
+        $validator = new Validator();
         $validator->notEmpty('title');
         $this->assertFalse($validator->field('title')->isEmptyAllowed());
 
         $validator->allowEmpty('title');
         $this->assertTrue($validator->field('title')->isEmptyAllowed());
+    }
+
+    /**
+     * Tests the notEmpty as array method
+     *
+     * @return void
+     */
+    public function testNotEmptyAsArray()
+    {
+        $validator = new Validator();
+        $validator->notEmpty(['title', 'created']);
+        $this->assertFalse($validator->field('title')->isEmptyAllowed());
+        $this->assertFalse($validator->field('created')->isEmptyAllowed());
+
+        $validator->notEmpty([
+            'title' => [
+                'when' => false
+            ],
+            'content' => [
+                'when' => 'update'
+            ],
+            'posted_at' => [
+                'when' => 'create'
+            ],
+            'show_at' => [
+                'message' => 'Show date cannot be empty',
+                'when' => false
+            ],
+            'subject'
+        ], 'Not empty', true);
+
+        $this->assertFalse($validator->field('title')->isEmptyAllowed());
+        $this->assertTrue($validator->isEmptyAllowed('content', true));
+        $this->assertFalse($validator->isEmptyAllowed('content', false));
+        $this->assertFalse($validator->isEmptyAllowed('posted_at', true));
+        $this->assertTrue($validator->isEmptyAllowed('posted_at', false));
+        $this->assertTrue($validator->field('subject')->isEmptyAllowed());
+
+        $errors = $validator->errors([
+            'title' => '',
+            'content' => '',
+            'posted_at' => null,
+            'show_at' => null,
+            'subject' => ''
+        ], false);
+
+        $expected = [
+            'title' => ['_empty' => 'Not empty'],
+            'content' => ['_empty' => 'Not empty'],
+            'show_at' => ['_empty' => 'Show date cannot be empty']
+        ];
+        $this->assertEquals($expected, $errors);
+    }
+
+    /**
+     * Tests the notEmpty failure case
+     *
+     * @expectedException \InvalidArgumentException
+     * @return void
+     */
+    public function testNotEmptyAsArrayFailure()
+    {
+        $validator = new Validator();
+        $validator->notEmpty(['title' => 'derp', 'created' => false]);
     }
 
     /**
@@ -503,7 +716,7 @@ class ValidatorTest extends TestCase
      */
     public function testNotEmptyModes()
     {
-        $validator = new Validator;
+        $validator = new Validator();
         $validator->notEmpty('title', 'Need a title', 'create');
         $this->assertFalse($validator->isEmptyAllowed('title', true));
         $this->assertTrue($validator->isEmptyAllowed('title', false));
@@ -528,7 +741,7 @@ class ValidatorTest extends TestCase
      */
     public function testNotEmptyAndIsAllowed()
     {
-        $validator = new Validator;
+        $validator = new Validator();
         $validator->allowEmpty('title')
             ->notEmpty('title', 'Need it', 'update');
         $this->assertTrue($validator->isEmptyAllowed('title', true));
@@ -552,12 +765,13 @@ class ValidatorTest extends TestCase
      */
     public function testAllowEmptyCallback()
     {
-        $validator = new Validator;
+        $validator = new Validator();
         $allow = true;
         $validator->allowEmpty('title', function ($context) use (&$allow) {
             $this->assertEquals([], $context['data']);
             $this->assertEquals([], $context['providers']);
             $this->assertTrue($context['newRecord']);
+
             return $allow;
         });
         $this->assertTrue($validator->isEmptyAllowed('title', true));
@@ -573,12 +787,13 @@ class ValidatorTest extends TestCase
      */
     public function testNotEmptyCallback()
     {
-        $validator = new Validator;
+        $validator = new Validator();
         $prevent = true;
         $validator->notEmpty('title', 'error message', function ($context) use (&$prevent) {
             $this->assertEquals([], $context['data']);
             $this->assertEquals([], $context['providers']);
             $this->assertFalse($context['newRecord']);
+
             return $prevent;
         });
         $this->assertFalse($validator->isEmptyAllowed('title', false));
@@ -594,7 +809,7 @@ class ValidatorTest extends TestCase
      */
     public function testIsEmptyAllowed()
     {
-        $validator = new Validator;
+        $validator = new Validator();
         $this->assertSame($validator, $validator->allowEmpty('title'));
         $this->assertTrue($validator->isEmptyAllowed('title', true));
         $this->assertTrue($validator->isEmptyAllowed('title', false));
@@ -619,7 +834,7 @@ class ValidatorTest extends TestCase
      */
     public function testErrorsWithEmptyNotAllowed()
     {
-        $validator = new Validator;
+        $validator = new Validator();
         $validator->notEmpty('title');
         $errors = $validator->errors(['title' => '']);
         $expected = ['title' => ['_empty' => 'This field cannot be left empty']];
@@ -644,13 +859,27 @@ class ValidatorTest extends TestCase
     }
 
     /**
-     * Tests custom error mesages generated when a field is not allowed to be empty
+     * Tests custom error messages generated when a field is allowed to be empty
+     *
+     * @return void
+     */
+    public function testCustomErrorsWithAllowedEmpty()
+    {
+        $validator = new Validator();
+        $validator->allowEmpty('title', false, 'Custom message');
+        $errors = $validator->errors(['title' => null]);
+        $expected = ['title' => ['_empty' => 'Custom message']];
+        $this->assertEquals($expected, $errors);
+    }
+
+    /**
+     * Tests custom error messages generated when a field is not allowed to be empty
      *
      * @return void
      */
     public function testCustomErrorsWithEmptyNotAllowed()
     {
-        $validator = new Validator;
+        $validator = new Validator();
         $validator->notEmpty('title', 'Custom message');
         $errors = $validator->errors(['title' => '']);
         $expected = ['title' => ['_empty' => 'Custom message']];
@@ -664,7 +893,7 @@ class ValidatorTest extends TestCase
      */
     public function testErrorsWithEmptyAllowed()
     {
-        $validator = new Validator;
+        $validator = new Validator();
         $validator->allowEmpty('title');
         $errors = $validator->errors(['title' => '']);
         $this->assertEmpty($errors);
@@ -695,7 +924,7 @@ class ValidatorTest extends TestCase
      */
     public function testProvider()
     {
-        $validator = new Validator;
+        $validator = new Validator();
         $object = new \stdClass;
         $this->assertSame($validator, $validator->provider('foo', $object));
         $this->assertSame($object, $validator->provider('foo'));
@@ -716,7 +945,7 @@ class ValidatorTest extends TestCase
      */
     public function testErrorsFromDefaultProvider()
     {
-        $validator = new Validator;
+        $validator = new Validator();
         $validator
             ->add('email', 'alpha', ['rule' => 'alphanumeric'])
             ->add('email', 'notBlank', ['rule' => 'notBlank'])
@@ -739,12 +968,14 @@ class ValidatorTest extends TestCase
      */
     public function testErrorsFromCustomProvider()
     {
-        $validator = new Validator;
+        $validator = new Validator();
         $validator
             ->add('email', 'alpha', ['rule' => 'alphanumeric'])
             ->add('title', 'cool', ['rule' => 'isCool', 'provider' => 'thing']);
 
-        $thing = $this->getMock('\stdClass', ['isCool']);
+        $thing = $this->getMockBuilder('\stdClass')
+            ->setMethods(['isCool'])
+            ->getMock();
         $thing->expects($this->once())->method('isCool')
             ->will($this->returnCallback(function ($data, $context) use ($thing) {
                 $this->assertEquals('bar', $data);
@@ -762,6 +993,7 @@ class ValidatorTest extends TestCase
                     'field' => 'title'
                 ];
                 $this->assertEquals($expected, $context);
+
                 return "That ain't cool, yo";
             }));
 
@@ -782,12 +1014,14 @@ class ValidatorTest extends TestCase
      */
     public function testMethodsWithExtraArguments()
     {
-        $validator = new Validator;
+        $validator = new Validator();
         $validator->add('title', 'cool', [
             'rule' => ['isCool', 'and', 'awesome'],
             'provider' => 'thing'
         ]);
-        $thing = $this->getMock('\stdClass', ['isCool']);
+        $thing = $this->getMockBuilder('\stdClass')
+            ->setMethods(['isCool'])
+            ->getMock();
         $thing->expects($this->once())->method('isCool')
             ->will($this->returnCallback(function ($data, $a, $b, $context) use ($thing) {
                 $this->assertEquals('bar', $data);
@@ -807,6 +1041,7 @@ class ValidatorTest extends TestCase
                     'field' => 'title'
                 ];
                 $this->assertEquals($expected, $context);
+
                 return "That ain't cool, yo";
             }));
         $validator->provider('thing', $thing);
@@ -824,10 +1059,11 @@ class ValidatorTest extends TestCase
      */
     public function testUsingClosureAsRule()
     {
-        $validator = new Validator;
+        $validator = new Validator();
         $validator->add('name', 'myRule', [
             'rule' => function ($data, $provider) {
                 $this->assertEquals('foo', $data);
+
                 return 'You fail';
             }
         ]);
@@ -842,7 +1078,7 @@ class ValidatorTest extends TestCase
      */
     public function testErrorsWithLastRule()
     {
-        $validator = new Validator;
+        $validator = new Validator();
         $validator
             ->add('email', 'alpha', ['rule' => 'alphanumeric', 'last' => true])
             ->add('email', 'email', ['rule' => 'email', 'message' => 'Y u no write email?']);
@@ -863,7 +1099,7 @@ class ValidatorTest extends TestCase
      */
     public function testArrayAccessGet()
     {
-        $validator = new Validator;
+        $validator = new Validator();
         $validator
             ->add('email', 'alpha', ['rule' => 'alphanumeric'])
             ->add('title', 'cool', ['rule' => 'isCool', 'provider' => 'thing']);
@@ -872,13 +1108,13 @@ class ValidatorTest extends TestCase
     }
 
     /**
-     * Tests it is possible to check for validation sets for a field using an array inteface
+     * Tests it is possible to check for validation sets for a field using an array interface
      *
      * @return void
      */
     public function testArrayAccessExists()
     {
-        $validator = new Validator;
+        $validator = new Validator();
         $validator
             ->add('email', 'alpha', ['rule' => 'alphanumeric'])
             ->add('title', 'cool', ['rule' => 'isCool', 'provider' => 'thing']);
@@ -888,13 +1124,13 @@ class ValidatorTest extends TestCase
     }
 
     /**
-     * Tests it is possible to set validation rules for a field using an array inteface
+     * Tests it is possible to set validation rules for a field using an array interface
      *
      * @return void
      */
     public function testArrayAccessSet()
     {
-        $validator = new Validator;
+        $validator = new Validator();
         $validator
             ->add('email', 'alpha', ['rule' => 'alphanumeric'])
             ->add('title', 'cool', ['rule' => 'isCool', 'provider' => 'thing']);
@@ -909,9 +1145,9 @@ class ValidatorTest extends TestCase
      *
      * @return void
      */
-    public function testArrayAccessUset()
+    public function testArrayAccessUnset()
     {
-        $validator = new Validator;
+        $validator = new Validator();
         $validator
             ->add('email', 'alpha', ['rule' => 'alphanumeric'])
             ->add('title', 'cool', ['rule' => 'isCool', 'provider' => 'thing']);
@@ -927,7 +1163,7 @@ class ValidatorTest extends TestCase
      */
     public function testCount()
     {
-        $validator = new Validator;
+        $validator = new Validator();
         $validator
             ->add('email', 'alpha', ['rule' => 'alphanumeric'])
             ->add('title', 'cool', ['rule' => 'isCool', 'provider' => 'thing']);
@@ -939,9 +1175,9 @@ class ValidatorTest extends TestCase
      *
      * @return void
      */
-    public function testAddMulitple()
+    public function testAddMultiple()
     {
-        $validator = new Validator;
+        $validator = new Validator();
         $validator->add('title', [
             'notBlank' => [
                 'rule' => 'notBlank'
@@ -963,7 +1199,7 @@ class ValidatorTest extends TestCase
      */
     public function testCompareWithIntegration()
     {
-        $validator = new Validator;
+        $validator = new Validator();
         $validator->add('password', [
             'compare' => [
                 'rule' => ['compareWith', 'password_compare']
@@ -1087,7 +1323,7 @@ class ValidatorTest extends TestCase
     /**
      * Tests the lengthBetween proxy method
      *
-     * @expectedException InvalidArgumentException
+     * @expectedException \InvalidArgumentException
      * @return void
      */
     public function testLengthBetweenFailure()
@@ -1164,7 +1400,8 @@ class ValidatorTest extends TestCase
     public function testEquals()
     {
         $validator = new Validator();
-        $this->assertProxyMethod($validator, 'equals', 5, ['=', 5], 'comparison');
+        $this->assertProxyMethod($validator, 'equals', 5, ['==', 5], 'comparison');
+        $this->assertEmpty($validator->errors(['username' => 5]));
         $this->assertNotEmpty($validator->errors(['username' => 6]));
     }
 
@@ -1215,7 +1452,6 @@ class ValidatorTest extends TestCase
         $this->assertProxyMethod($validator, 'date', ['ymd'], [['ymd']]);
         $this->assertNotEmpty($validator->errors(['username' => 'not a date']));
     }
-
 
     /**
      * Tests the dateTime proxy method
@@ -1288,7 +1524,6 @@ class ValidatorTest extends TestCase
         $this->assertProxyMethod($validator, 'ip');
         $this->assertNotEmpty($validator->errors(['username' => 'not ip']));
 
-
         $this->assertProxyMethod($validator, 'ipv4', null, ['ipv4'], 'ip');
         $this->assertNotEmpty($validator->errors(['username' => 'not ip']));
 
@@ -1309,6 +1544,18 @@ class ValidatorTest extends TestCase
     }
 
     /**
+     * Tests the minLengthBytes proxy method
+     *
+     * @return void
+     */
+    public function testMinLengthBytes()
+    {
+        $validator = new Validator();
+        $this->assertProxyMethod($validator, 'minLengthBytes', 11, [11]);
+        $this->assertNotEmpty($validator->errors(['username' => 'ÆΔΩЖÇ']));
+    }
+
+    /**
      * Tests the maxLength proxy method
      *
      * @return void
@@ -1318,6 +1565,18 @@ class ValidatorTest extends TestCase
         $validator = new Validator();
         $this->assertProxyMethod($validator, 'maxLength', 2, [2]);
         $this->assertNotEmpty($validator->errors(['username' => 'aaa']));
+    }
+
+    /**
+     * Tests the maxLengthBytes proxy method
+     *
+     * @return void
+     */
+    public function testMaxLengthBytes()
+    {
+        $validator = new Validator();
+        $this->assertProxyMethod($validator, 'maxLengthBytes', 9, [9]);
+        $this->assertNotEmpty($validator->errors(['username' => 'ÆΔΩЖÇ']));
     }
 
     /**
@@ -1372,7 +1631,7 @@ class ValidatorTest extends TestCase
     /**
      * Tests the range failure case
      *
-     * @expectedException InvalidArgumentException
+     * @expectedException \InvalidArgumentException
      * @return void
      */
     public function testRangeFailure()
@@ -1380,6 +1639,7 @@ class ValidatorTest extends TestCase
         $validator = new Validator();
         $validator->range('username', [1]);
     }
+
     /**
      * Tests the url proxy method
      *
@@ -1528,6 +1788,45 @@ class ValidatorTest extends TestCase
     }
 
     /**
+     * Tests the isArray proxy method
+     *
+     * @return void
+     */
+    public function testIsArray()
+    {
+        $validator = new Validator();
+        $validator->isArray('username');
+        $this->assertEmpty($validator->errors(['username' => [1, 2, 3]]));
+        $this->assertNotEmpty($validator->errors(['username' => 'is not an array']));
+    }
+
+    /**
+     * Tests the scalar proxy method
+     *
+     * @return void
+     */
+    public function testScalar()
+    {
+        $validator = new Validator();
+        $validator->scalar('username');
+        $this->assertEmpty($validator->errors(['username' => 'scalar']));
+        $this->assertNotEmpty($validator->errors(['username' => ['array']]));
+    }
+
+    /**
+     * Tests the hexColor proxy method
+     *
+     * @return void
+     */
+    public function testHexColor()
+    {
+        $validator = new Validator();
+        $this->assertProxyMethod($validator, 'hexColor');
+        $this->assertEmpty($validator->errors(['username' => '#FFFFFF']));
+        $this->assertNotEmpty($validator->errors(['username' => 'FFFFFF']));
+    }
+
+    /**
      * Tests the multiple proxy method
      *
      * @return void
@@ -1539,12 +1838,83 @@ class ValidatorTest extends TestCase
             $validator,
             'multipleOptions',
             ['min' => 1, 'caseInsensitive' => true],
+            [['min' => 1], true],
+            'multiple'
+        );
+
+        $this->assertProxyMethod(
+            $validator,
+            'multipleOptions',
+            ['min' => 1, 'caseInsensitive' => false],
             [['min' => 1], false],
             'multiple'
         );
+
         $this->assertNotEmpty($validator->errors(['username' => '']));
     }
 
+    /**
+     * Tests the hasAtLeast method
+     *
+     * @return void
+     */
+    public function testHasAtLeast()
+    {
+        $validator = new Validator();
+        $validator->hasAtLeast('things', 3);
+        $this->assertEmpty($validator->errors(['things' => [1, 2, 3]]));
+        $this->assertEmpty($validator->errors(['things' => [1, 2, 3, 4]]));
+        $this->assertNotEmpty($validator->errors(['things' => [1, 2]]));
+        $this->assertNotEmpty($validator->errors(['things' => []]));
+        $this->assertNotEmpty($validator->errors(['things' => 'string']));
+
+        $this->assertEmpty($validator->errors(['things' => ['_ids' => [1, 2, 3]]]));
+        $this->assertEmpty($validator->errors(['things' => ['_ids' => [1, 2, 3, 4]]]));
+        $this->assertNotEmpty($validator->errors(['things' => ['_ids' => [1, 2]]]));
+        $this->assertNotEmpty($validator->errors(['things' => ['_ids' => []]]));
+        $this->assertNotEmpty($validator->errors(['things' => ['_ids' => 'string']]));
+    }
+
+    /**
+     * Tests the hasAtMost method
+     *
+     * @return void
+     */
+    public function testHasAtMost()
+    {
+        $validator = new Validator();
+        $validator->hasAtMost('things', 3);
+        $this->assertEmpty($validator->errors(['things' => [1, 2, 3]]));
+        $this->assertEmpty($validator->errors(['things' => [1]]));
+        $this->assertNotEmpty($validator->errors(['things' => [1, 2, 3, 4]]));
+
+        $this->assertEmpty($validator->errors(['things' => ['_ids' => [1, 2, 3]]]));
+        $this->assertEmpty($validator->errors(['things' => ['_ids' => [1, 2]]]));
+        $this->assertNotEmpty($validator->errors(['things' => ['_ids' => [1, 2, 3, 4]]]));
+    }
+
+    /**
+     * Tests the regex proxy method
+     *
+     * @return void
+     */
+    public function testRegex()
+    {
+        $validator = new Validator();
+        $this->assertProxyMethod($validator, 'regex', '/(?<!\\S)\\d++(?!\\S)/', ['/(?<!\\S)\\d++(?!\\S)/'], 'custom');
+        $this->assertEmpty($validator->errors(['username' => '123']));
+        $this->assertNotEmpty($validator->errors(['username' => 'Foo']));
+    }
+
+    /**
+     * Tests that a rule in the Validator class exists and was configured as expected.
+     *
+     * @param Validator $validator
+     * @param string $method
+     * @param mixed $extra
+     * @param array $pass
+     * @param string|null $name
+     */
     protected function assertProxyMethod($validator, $method, $extra = null, $pass = [], $name = null)
     {
         $name = $name ?: $method;
@@ -1571,5 +1941,37 @@ class ValidatorTest extends TestCase
         $rule = $validator->field('username')->rule($method);
         $this->assertEquals('the message', $rule->get('message'), 'Error messages are not the same');
         $this->assertEquals('create', $rule->get('on'), 'On clause is wrong');
+    }
+
+    /**
+     * Testing adding DefaultProvider
+     *
+     * @return void
+     */
+    public function testAddingDefaultProvider()
+    {
+        $validator = new Validator();
+        $this->assertEmpty($validator->providers(), 'Providers should be empty');
+
+        Validator::addDefaultProvider('test-provider', 'MyNameSpace\Validation\MyProvider');
+        $validator = new Validator();
+        $this->assertEquals($validator->providers(), ['test-provider'], 'Default provider `test-provider` is missing');
+    }
+
+    /**
+     * Testing getting DefaultProvider(s)
+     *
+     * @return void
+     */
+    public function testGetDefaultProvider()
+    {
+        Validator::addDefaultProvider('test-provider', 'MyNameSpace\Validation\MyProvider');
+        $this->assertEquals(Validator::getDefaultProvider('test-provider'), 'MyNameSpace\Validation\MyProvider', 'Default provider `test-provider` is missing');
+
+        $this->assertNull(Validator::getDefaultProvider('invalid-provider'), 'Default provider (`invalid-provider`) should be missing');
+        $this->assertNull(Validator::getDefaultProvider(null), 'Default provider (null) should be missing');
+
+        Validator::addDefaultProvider('test-provider2', 'MyNameSpace\Validation\MySecondProvider');
+        $this->assertEquals(Validator::getDefaultProviders(), ['test-provider', 'test-provider2'], 'Default providers incorrect');
     }
 }

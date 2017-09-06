@@ -1,26 +1,29 @@
 <?php
 /**
- * CakePHP : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP Project
  * @since         1.2.0
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 namespace Cake\Test\TestCase\TestSuite;
 
-use Cake\Core\Configure;
 use Cake\Core\Plugin;
 use Cake\Datasource\ConnectionManager;
+use Cake\Event\Event;
+use Cake\Event\EventList;
+use Cake\Event\EventManager;
+use Cake\ORM\Entity;
 use Cake\ORM\Table;
 use Cake\ORM\TableRegistry;
+use Cake\TestSuite\Fixture\FixtureManager;
 use Cake\TestSuite\TestCase;
-use Cake\Test\Fixture\AssertHtmlTestCase;
 use Cake\Test\Fixture\FixturizedTestCase;
 
 /**
@@ -40,141 +43,82 @@ class SecondaryPostsTable extends Table
 
 /**
  * TestCaseTest
- *
  */
 class TestCaseTest extends TestCase
 {
 
     /**
-     * testAssertHtml
+     * tests trying to assertEventFired without configuring an event list
      *
-     * @return void
+     * @expectedException \PHPUnit\Framework\AssertionFailedError
      */
-    public function testAssertHtmlBasic()
+    public function testEventFiredMisconfiguredEventList()
     {
-        $test = new AssertHtmlTestCase('testAssertHtmlQuotes');
-        $result = $test->run();
-        ob_start();
-        $this->assertEquals(0, $result->errorCount());
-        $this->assertTrue($result->wasSuccessful());
-        $this->assertEquals(0, $result->failureCount());
+        $manager = EventManager::instance();
+        $this->assertEventFired('my.event', $manager);
     }
 
     /**
-     * test assertHtml works with single and double quotes
+     * tests trying to assertEventFired without configuring an event list
      *
-     * @return void
+     * @expectedException \PHPUnit\Framework\AssertionFailedError
      */
-    public function testAssertHtmlQuoting()
+    public function testEventFiredWithMisconfiguredEventList()
     {
-        $input = '<a href="/test.html" class="active">My link</a>';
-        $pattern = [
-            'a' => ['href' => '/test.html', 'class' => 'active'],
-            'My link',
-            '/a'
-        ];
-        $this->assertHtml($pattern, $input);
-
-        $input = "<a href='/test.html' class='active'>My link</a>";
-        $pattern = [
-            'a' => ['href' => '/test.html', 'class' => 'active'],
-            'My link',
-            '/a'
-        ];
-        $this->assertHtml($pattern, $input);
-
-        $input = "<a href='/test.html' class='active'>My link</a>";
-        $pattern = [
-            'a' => ['href' => 'preg:/.*\.html/', 'class' => 'active'],
-            'My link',
-            '/a'
-        ];
-        $this->assertHtml($pattern, $input);
-
-        $input = "<span><strong>Text</strong></span>";
-        $pattern = [
-            '<span',
-            '<strong',
-            'Text',
-            '/strong',
-            '/span'
-        ];
-        $this->assertHtml($pattern, $input);
-
-        $input = "<span class='active'><strong>Text</strong></span>";
-        $pattern = [
-            'span' => ['class'],
-            '<strong',
-            'Text',
-            '/strong',
-            '/span'
-        ];
-        $this->assertHtml($pattern, $input);
+        $manager = EventManager::instance();
+        $this->assertEventFiredWith('my.event', 'some', 'data', $manager);
     }
 
     /**
-     * Test that assertHtml runs quickly.
+     * tests assertEventFiredWith
      *
      * @return void
      */
-    public function testAssertHtmlRuntimeComplexity()
+    public function testEventFiredWith()
     {
-        $pattern = [
-            'div' => [
-                'attr1' => 'val1',
-                'attr2' => 'val2',
-                'attr3' => 'val3',
-                'attr4' => 'val4',
-                'attr5' => 'val5',
-                'attr6' => 'val6',
-                'attr7' => 'val7',
-                'attr8' => 'val8',
-            ],
-            'My div',
-            '/div'
-        ];
-        $input = '<div attr8="val8" attr6="val6" attr4="val4" attr2="val2"' .
-            ' attr1="val1" attr3="val3" attr5="val5" attr7="val7" />' .
-            'My div' .
-            '</div>';
-        $this->assertHtml($pattern, $input);
+        $manager = EventManager::instance();
+        $manager->setEventList(new EventList());
+        $manager->trackEvents(true);
+
+        $event = new Event('my.event', $this, [
+            'some' => 'data'
+        ]);
+        $manager->dispatch($event);
+        $this->assertEventFiredWith('my.event', 'some', 'data');
+
+        $manager = new EventManager();
+        $manager->setEventList(new EventList());
+        $manager->trackEvents(true);
+
+        $event = new Event('my.event', $this, [
+            'other' => 'data'
+        ]);
+        $manager->dispatch($event);
+        $this->assertEventFiredWith('my.event', 'other', 'data', $manager);
     }
 
     /**
-     * testNumericValuesInExpectationForAssertHtml
+     * tests assertEventFired
      *
      * @return void
      */
-    public function testNumericValuesInExpectationForAssertHtml()
+    public function testEventFired()
     {
-        $test = new AssertHtmlTestCase('testNumericValuesInExpectationForAssertHtml');
-        $result = $test->run();
-        ob_start();
-        $this->assertEquals(0, $result->errorCount());
-        $this->assertTrue($result->wasSuccessful());
-        $this->assertEquals(0, $result->failureCount());
-    }
+        $manager = EventManager::instance();
+        $manager->setEventList(new EventList());
+        $manager->trackEvents(true);
 
-    /**
-     * testBadAssertHtml
-     *
-     * @return void
-     */
-    public function testBadAssertHtml()
-    {
-        $test = new AssertHtmlTestCase('testBadAssertHtml');
-        $result = $test->run();
-        ob_start();
-        $this->assertEquals(0, $result->errorCount());
-        $this->assertFalse($result->wasSuccessful());
-        $this->assertEquals(1, $result->failureCount());
+        $event = new Event('my.event');
+        $manager->dispatch($event);
+        $this->assertEventFired('my.event');
 
-        $test = new AssertHtmlTestCase('testBadAssertHtml2');
-        $result = $test->run();
-        ob_start();
-        $this->assertEquals(0, $result->errorCount());
-        $this->assertFalse($result->wasSuccessful());
-        $this->assertEquals(1, $result->failureCount());
+        $manager = new EventManager();
+        $manager->setEventList(new EventList());
+        $manager->trackEvents(true);
+
+        $event = new Event('my.event');
+        $manager->dispatch($event);
+        $this->assertEventFired('my.event', $manager);
     }
 
     /**
@@ -186,14 +130,33 @@ class TestCaseTest extends TestCase
     {
         $test = new FixturizedTestCase('testFixtureLoadOnDemand');
         $test->autoFixtures = false;
-        $manager = $this->getMock('Cake\TestSuite\Fixture\FixtureManager');
+        $manager = $this->getMockBuilder('Cake\TestSuite\Fixture\FixtureManager')->getMock();
         $manager->fixturize($test);
         $test->fixtureManager = $manager;
         $manager->expects($this->once())->method('loadSingle');
         $result = $test->run();
-        ob_start();
 
         $this->assertEquals(0, $result->errorCount());
+    }
+
+    /**
+     * tests loadFixtures loads all fixtures on the test
+     *
+     * @return void
+     */
+    public function testLoadAllFixtures()
+    {
+        $test = new FixturizedTestCase('testLoadAllFixtures');
+        $test->autoFixtures = false;
+        $manager = new FixtureManager();
+        $manager->fixturize($test);
+        $test->fixtureManager = $manager;
+
+        $result = $test->run();
+
+        $this->assertEquals(0, $result->errorCount());
+        $this->assertCount(1, $result->passed());
+        $this->assertFalse($test->autoFixtures);
     }
 
     /**
@@ -205,12 +168,10 @@ class TestCaseTest extends TestCase
     {
         $test = new FixturizedTestCase('testSkipIfTrue');
         $result = $test->run();
-        ob_start();
         $this->assertEquals(1, $result->skippedCount());
 
         $test = new FixturizedTestCase('testSkipIfFalse');
         $result = $test->run();
-        ob_start();
         $this->assertEquals(0, $result->skippedCount());
     }
 
@@ -317,7 +278,7 @@ class TestCaseTest extends TestCase
         $stringDirty = "some\nstring\r\nwith\rdifferent\nline endings!";
         $stringClean = "some\nstring\nwith\ndifferent\nline endings!";
 
-        $this->assertContains("different", $stringDirty);
+        $this->assertContains('different', $stringDirty);
         $this->assertNotContains("different\rline", $stringDirty);
 
         $this->assertTextContains("different\rline", $stringDirty);
@@ -365,9 +326,9 @@ class TestCaseTest extends TestCase
      */
     public function testGetMockForModel()
     {
-        Configure::write('App.namespace', 'TestApp');
+        static::setAppNamespace();
         $Posts = $this->getMockForModel('Posts');
-        $entity = new \Cake\ORM\Entity([]);
+        $entity = new Entity([]);
 
         $this->assertInstanceOf('TestApp\Model\Table\PostsTable', $Posts);
         $this->assertNull($Posts->save($entity));
@@ -408,12 +369,13 @@ class TestCaseTest extends TestCase
      */
     public function testGetMockForModelWithPlugin()
     {
-        Configure::write('App.namespace', 'TestApp');
+        static::setAppNamespace();
         Plugin::load('TestPlugin');
         $TestPluginComment = $this->getMockForModel('TestPlugin.TestPluginComments');
 
         $result = TableRegistry::get('TestPlugin.TestPluginComments');
         $this->assertInstanceOf('TestPlugin\Model\Table\TestPluginCommentsTable', $result);
+        $this->assertSame($TestPluginComment, $result);
 
         $TestPluginComment = $this->getMockForModel('TestPlugin.TestPluginComments', ['save']);
 
@@ -426,7 +388,7 @@ class TestCaseTest extends TestCase
             ->method('save')
             ->will($this->returnValue(false));
 
-        $entity = new \Cake\ORM\Entity([]);
+        $entity = new Entity([]);
         $this->assertTrue($TestPluginComment->save($entity));
         $this->assertFalse($TestPluginComment->save($entity));
 
@@ -459,8 +421,24 @@ class TestCaseTest extends TestCase
             ->method('save')
             ->will($this->returnValue(false));
 
-        $entity = new \Cake\ORM\Entity([]);
+        $entity = new Entity([]);
         $this->assertTrue($Mock->save($entity));
         $this->assertFalse($Mock->save($entity));
+    }
+
+    /**
+     * Test getting a table mock that doesn't have a preset table name sets the proper name
+     *
+     * @return void
+     */
+    public function testGetMockForModelSetTable()
+    {
+        static::setAppNamespace();
+
+        $I18n = $this->getMockForModel('I18n', ['doSomething']);
+        $this->assertEquals('custom_i18n_table', $I18n->table());
+
+        $Tags = $this->getMockForModel('Tags', ['doSomething']);
+        $this->assertEquals('tags', $Tags->table());
     }
 }

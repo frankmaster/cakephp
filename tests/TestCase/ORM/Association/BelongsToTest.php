@@ -1,16 +1,16 @@
 <?php
 /**
- * CakePHP(tm) : Rapid Development Framework (http://cakephp.org)
- * Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
+ * CakePHP(tm) : Rapid Development Framework (https://cakephp.org)
+ * Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
  *
  * Licensed under The MIT License
  * For full copyright and license information, please see the LICENSE.txt
  * Redistributions of files must retain the above copyright notice.
  *
- * @copyright     Copyright (c) Cake Software Foundation, Inc. (http://cakefoundation.org)
- * @link          http://cakephp.org CakePHP(tm) Project
+ * @copyright     Copyright (c) Cake Software Foundation, Inc. (https://cakefoundation.org)
+ * @link          https://cakephp.org CakePHP(tm) Project
  * @since         3.0.0
- * @license       http://www.opensource.org/licenses/mit-license.php MIT License
+ * @license       https://opensource.org/licenses/mit-license.php MIT License
  */
 namespace Cake\Test\TestCase\ORM\Association;
 
@@ -24,7 +24,6 @@ use Cake\TestSuite\TestCase;
 
 /**
  * Tests BelongsTo class
- *
  */
 class BelongsToTest extends TestCase
 {
@@ -90,6 +89,22 @@ class BelongsToTest extends TestCase
      * @return void
      */
     public function testForeignKey()
+    {
+        $assoc = new BelongsTo('Companies', [
+            'sourceTable' => $this->client,
+            'targetTable' => $this->company,
+        ]);
+        $this->assertEquals('company_id', $assoc->foreignKey());
+        $this->assertEquals('another_key', $assoc->foreignKey('another_key'));
+        $this->assertEquals('another_key', $assoc->foreignKey());
+    }
+
+    /**
+     * Test that foreignKey generation ignores database names in target table.
+     *
+     * @return void
+     */
+    public function testForeignKeyIgnoreDatabaseName()
     {
         $this->company->table('schema.companies');
         $this->client->table('schema.clients');
@@ -244,7 +259,7 @@ class BelongsToTest extends TestCase
      * @expectedExceptionMessage Cannot match provided foreignKey for "Companies", got "(company_id)" but expected foreign key for "(id, tenant_id)"
      * @return void
      */
-    public function testAttachToMultiPrimaryKeyMistmatch()
+    public function testAttachToMultiPrimaryKeyMismatch()
     {
         $this->company->primaryKey(['id', 'tenant_id']);
         $query = $this->client->query();
@@ -265,7 +280,9 @@ class BelongsToTest extends TestCase
      */
     public function testCascadeDelete()
     {
-        $mock = $this->getMock('Cake\ORM\Table', [], [], '', false);
+        $mock = $this->getMockBuilder('Cake\ORM\Table')
+            ->disableOriginalConstructor()
+            ->getMock();
         $config = [
             'sourceTable' => $this->client,
             'targetTable' => $mock,
@@ -287,7 +304,10 @@ class BelongsToTest extends TestCase
      */
     public function testSaveAssociatedOnlyEntities()
     {
-        $mock = $this->getMock('Cake\ORM\Table', ['saveAssociated'], [], '', false);
+        $mock = $this->getMockBuilder('Cake\ORM\Table')
+            ->setMethods(['saveAssociated'])
+            ->disableOriginalConstructor()
+            ->getMock();
         $config = [
             'sourceTable' => $this->client,
             'targetTable' => $mock,
@@ -326,7 +346,9 @@ class BelongsToTest extends TestCase
      */
     public function testPropertyNoPlugin()
     {
-        $mock = $this->getMock('Cake\ORM\Table', [], [], '', false);
+        $mock = $this->getMockBuilder('Cake\ORM\Table')
+            ->disableOriginalConstructor()
+            ->getMock();
         $config = [
             'sourceTable' => $this->client,
             'targetTable' => $mock,
@@ -348,8 +370,10 @@ class BelongsToTest extends TestCase
             'sourceTable' => $this->client,
             'targetTable' => $this->company
         ];
-        $listener = $this->getMock('stdClass', ['__invoke']);
-        $this->company->eventManager()->attach($listener, 'Model.beforeFind');
+        $listener = $this->getMockBuilder('stdClass')
+            ->setMethods(['__invoke'])
+            ->getMock();
+        $this->company->getEventManager()->attach($listener, 'Model.beforeFind');
         $association = new BelongsTo('Companies', $config);
         $listener->expects($this->once())->method('__invoke')
             ->with(
@@ -374,8 +398,10 @@ class BelongsToTest extends TestCase
             'sourceTable' => $this->client,
             'targetTable' => $this->company
         ];
-        $listener = $this->getMock('stdClass', ['__invoke']);
-        $this->company->eventManager()->attach($listener, 'Model.beforeFind');
+        $listener = $this->getMockBuilder('stdClass')
+            ->setMethods(['__invoke'])
+            ->getMock();
+        $this->company->getEventManager()->attach($listener, 'Model.beforeFind');
         $association = new BelongsTo('Companies', $config);
         $options = new \ArrayObject(['something' => 'more']);
         $listener->expects($this->once())->method('__invoke')
