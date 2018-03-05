@@ -310,6 +310,14 @@ class HtmlHelperTest extends TestCase
         $result = $this->Html->link('say hello to 0123465-798', 'sms:0123465-798?body=hello "cakephp"');
         $expected = ['a' => ['href' => 'sms:0123465-798?body=hello &quot;cakephp&quot;'], 'say hello to 0123465-798', '/a'];
         $this->assertHtml($expected, $result);
+
+        $result = $this->Html->link('Home', '/', ['fullBase' => true]);
+        $expected = ['a' => ['href' => 'http://localhost/'], 'Home', '/a'];
+        $this->assertHtml($expected, $result);
+
+        $result = $this->Html->link('Home', '/', ['fullBase' => false]);
+        $expected = ['a' => ['href' => '/'], 'Home', '/a'];
+        $this->assertHtml($expected, $result);
     }
 
     /**
@@ -350,7 +358,10 @@ class HtmlHelperTest extends TestCase
 
         $result = $this->Html->image('x:"><script>alert(1)</script>');
         $expected = ['img' => ['src' => 'x:&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;', 'alt' => '']];
+        $this->assertHtml($expected, $result);
 
+        $result = $this->Html->image('//google.com/"><script>alert(1)</script>');
+        $expected = ['img' => ['src' => '//google.com/&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;', 'alt' => '']];
         $this->assertHtml($expected, $result);
     }
 

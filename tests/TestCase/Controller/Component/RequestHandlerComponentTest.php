@@ -488,8 +488,8 @@ class RequestHandlerComponentTest extends TestCase
         $_SERVER['CONTENT_TYPE'] = 'application/xml';
         $this->Controller->request = new ServerRequest();
         $this->RequestHandler->beforeRender($event);
-        $this->assertTrue(is_array($this->Controller->request->data));
-        $this->assertFalse(is_object($this->Controller->request->data));
+        $this->assertInternalType('array', $this->Controller->request->data);
+        $this->assertNotInternalType('object', $this->Controller->request->data);
     }
 
     /**
@@ -505,8 +505,8 @@ class RequestHandlerComponentTest extends TestCase
         $_SERVER['CONTENT_TYPE'] = 'application/xml; charset=UTF-8';
         $this->Controller->request = new ServerRequest();
         $this->RequestHandler->startup($event);
-        $this->assertTrue(is_array($this->Controller->request->data));
-        $this->assertFalse(is_object($this->Controller->request->data));
+        $this->assertInternalType('array', $this->Controller->request->data);
+        $this->assertNotInternalType('object', $this->Controller->request->data);
     }
 
     /**
@@ -898,6 +898,10 @@ class RequestHandlerComponentTest extends TestCase
         $this->request->env('HTTP_ACCEPT', '*/*;q=0.5');
         $this->assertEquals('html', $this->RequestHandler->prefers());
         $this->assertFalse($this->RequestHandler->prefers('rss'));
+
+        $this->Controller->request = $this->request->withEnv('HTTP_ACCEPT', null);
+        $this->RequestHandler->ext = 'json';
+        $this->assertFalse($this->RequestHandler->prefers('xml'));
     }
 
     /**
@@ -1105,11 +1109,11 @@ class RequestHandlerComponentTest extends TestCase
     /**
      * testAddInputTypeException method
      *
-     * @expectedException \Cake\Core\Exception\Exception
      * @return void
      */
     public function testAddInputTypeException()
     {
+        $this->expectException(\Cake\Core\Exception\Exception::class);
         $restore = error_reporting(E_ALL & ~E_USER_DEPRECATED);
         $this->RequestHandler->addInputType('csv', ['I am not callable']);
         error_reporting($restore);

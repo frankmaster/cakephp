@@ -13,7 +13,6 @@
 namespace Cake\Test\TestCase\Http\Cookie;
 
 use Cake\Http\Client\Request as ClientRequest;
-use Cake\Http\Client\Response as ClientResponse;
 use Cake\Http\Cookie\Cookie;
 use Cake\Http\Cookie\CookieCollection;
 use Cake\Http\Response;
@@ -180,12 +179,12 @@ class CookieCollectionTest extends TestCase
      * Test that the constructor takes only an array of objects implementing
      * the CookieInterface
      *
-     * @expectedException \InvalidArgumentException
-     * @expectedExceptionMessage Expected `Cake\Http\Cookie\CookieCollection[]` as $cookies but instead got `array` at index 1
      * @return void
      */
     public function testConstructorWithInvalidCookieObjects()
     {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Expected `Cake\Http\Cookie\CookieCollection[]` as $cookies but instead got `array` at index 1');
         $array = [
             new Cookie('one', 'one'),
             []
@@ -336,24 +335,29 @@ class CookieCollectionTest extends TestCase
     {
         $collection = new CookieCollection();
         $collection = $collection
+            ->add(new Cookie('default', '1', null, '/', 'example.com'))
             ->add(new Cookie('api', 'A', null, '/api', 'example.com'))
             ->add(new Cookie('blog', 'b', null, '/blog', 'blog.example.com'))
             ->add(new Cookie('expired', 'ex', new DateTime('-2 seconds'), '/', 'example.com'));
         $request = new ClientRequest('http://example.com/api');
         $request = $collection->addToRequest($request);
-        $this->assertSame('api=A', $request->getHeaderLine('Cookie'));
+        $this->assertSame('default=1; api=A', $request->getHeaderLine('Cookie'));
 
         $request = new ClientRequest('http://example.com/');
         $request = $collection->addToRequest($request);
-        $this->assertSame('', $request->getHeaderLine(''));
+        $this->assertSame('default=1', $request->getHeaderLine('Cookie'));
+
+        $request = new ClientRequest('http://example.com');
+        $request = $collection->addToRequest($request);
+        $this->assertSame('default=1', $request->getHeaderLine('Cookie'));
 
         $request = new ClientRequest('http://example.com/blog');
         $request = $collection->addToRequest($request);
-        $this->assertSame('', $request->getHeaderLine('Cookie'), 'domain matching should apply');
+        $this->assertSame('default=1', $request->getHeaderLine('Cookie'), 'domain matching should apply');
 
         $request = new ClientRequest('http://foo.blog.example.com/blog');
         $request = $collection->addToRequest($request);
-        $this->assertSame('blog=b', $request->getHeaderLine('Cookie'));
+        $this->assertSame('default=1; blog=b', $request->getHeaderLine('Cookie'));
     }
 
     /**

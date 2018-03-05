@@ -137,6 +137,27 @@ class ClientTest extends TestCase
                 [],
                 'query string data with some already on the url.'
             ],
+            [
+                'http://example.com/test.html',
+                '//test.html',
+                [],
+                [
+                    'scheme' => 'http',
+                    'host' => 'example.com',
+                    'protocolRelative' => false
+                ],
+                'url with a double slash',
+            ],
+            [
+                'http://example.com/test.html',
+                '//example.com/test.html',
+                [],
+                [
+                    'scheme' => 'http',
+                    'protocolRelative' => true
+                ],
+                'protocol relative url',
+            ],
         ];
     }
 
@@ -337,11 +358,11 @@ class ClientTest extends TestCase
     /**
      * Test invalid authentication types throw exceptions.
      *
-     * @expectedException \Cake\Core\Exception\Exception
      * @return void
      */
     public function testInvalidAuthenticationType()
     {
+        $this->expectException(\Cake\Core\Exception\Exception::class);
         $mock = $this->getMockBuilder('Cake\Http\Client\Adapter\Stream')
             ->setMethods(['send'])
             ->getMock();
@@ -570,11 +591,11 @@ class ClientTest extends TestCase
     /**
      * Test that exceptions are raised on invalid types.
      *
-     * @expectedException \Cake\Core\Exception\Exception
      * @return void
      */
     public function testExceptionOnUnknownType()
     {
+        $this->expectException(\Cake\Core\Exception\Exception::class);
         $mock = $this->getMockBuilder('Cake\Http\Client\Adapter\Stream')
             ->setMethods(['send'])
             ->getMock();
@@ -644,7 +665,43 @@ class ClientTest extends TestCase
     public function testAddCookie()
     {
         $client = new Client();
-        $cookie = new Cookie('foo');
+        $cookie = new Cookie('foo', '', null, '/', 'example.com');
+
+        $this->assertFalse($client->cookies()->has('foo'));
+
+        $client->addCookie($cookie);
+        $this->assertTrue($client->cookies()->has('foo'));
+    }
+
+    /**
+     * Test addCookie() method without a domain.
+     *
+     * @return void
+     */
+    public function testAddCookieWithoutDomain()
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Cookie must have a domain and a path set.');
+        $client = new Client();
+        $cookie = new Cookie('foo', '', null, '/', '');
+
+        $this->assertFalse($client->cookies()->has('foo'));
+
+        $client->addCookie($cookie);
+        $this->assertTrue($client->cookies()->has('foo'));
+    }
+
+    /**
+     * Test addCookie() method without a path.
+     *
+     * @return void
+     */
+    public function testAddCookieWithoutPath()
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Cookie must have a domain and a path set.');
+        $client = new Client();
+        $cookie = new Cookie('foo', '', null, '', 'example.com');
 
         $this->assertFalse($client->cookies()->has('foo'));
 

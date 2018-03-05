@@ -90,6 +90,16 @@ class TestEmail extends Email
     {
         return $this->_render($content);
     }
+
+    /**
+     * GetContentTransferEncoding to protected method
+     *
+     * @return string
+     */
+    public function getContentTransferEncoding()
+    {
+        return $this->_getContentTransferEncoding();
+    }
 }
 
 /**
@@ -274,6 +284,19 @@ class EmailTest extends TestCase
     }
 
     /**
+     * test to address with _ in domain name
+     *
+     * @return void
+     */
+    public function testToUnderscoreDomain()
+    {
+        $result = $this->Email->to('cake@cake_php.org');
+        $expected = ['cake@cake_php.org' => 'cake@cake_php.org'];
+        $this->assertSame($expected, $this->Email->to());
+        $this->assertSame($this->Email, $result);
+    }
+
+    /**
      * Data provider function for testBuildInvalidData
      *
      * @return array
@@ -293,11 +316,11 @@ class EmailTest extends TestCase
      * testBuildInvalidData
      *
      * @dataProvider invalidEmails
-     * @expectedException \InvalidArgumentException
      * @return void
      */
     public function testInvalidEmail($value)
     {
+        $this->expectException(\InvalidArgumentException::class);
         $this->Email->to($value);
     }
 
@@ -305,11 +328,11 @@ class EmailTest extends TestCase
      * testBuildInvalidData
      *
      * @dataProvider invalidEmails
-     * @expectedException \InvalidArgumentException
      * @return void
      */
     public function testInvalidEmailAdd($value)
     {
+        $this->expectException(\InvalidArgumentException::class);
         $this->Email->addTo($value);
     }
 
@@ -385,11 +408,11 @@ class EmailTest extends TestCase
      *
      * @return void
      *
-     * @expectedException \InvalidArgumentException
-     * @expectedExceptionMessage Transport class "TestFalse" not found.
      */
     public function testClassNameException()
     {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Transport class "TestFalse" not found.');
         $email = new Email();
         $email->transport('badClassName');
     }
@@ -399,11 +422,11 @@ class EmailTest extends TestCase
      *
      * @return void
      *
-     * @expectedException \InvalidArgumentException
-     * @expectedExceptionMessage Invalid email set for "to". You passed "fail.@example.com".
      */
     public function testUnsetEmailPattern()
     {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid email set for "to". You passed "fail.@example.com".');
         $email = new Email();
         $this->assertSame(Email::EMAIL_PATTERN, $email->emailPattern());
 
@@ -419,11 +442,11 @@ class EmailTest extends TestCase
      *
      * @return void
      *
-     * @expectedException \InvalidArgumentException
-     * @expectedExceptionMessage The email set for "to" is empty.
      */
     public function testEmptyTo()
     {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('The email set for "to" is empty.');
         $email = new Email();
         $email->setTo('');
     }
@@ -568,10 +591,10 @@ class EmailTest extends TestCase
      * testMessageIdInvalid method
      *
      * @return void
-     * @expectedException \InvalidArgumentException
      */
     public function testMessageIdInvalid()
     {
+        $this->expectException(\InvalidArgumentException::class);
         $this->Email->messageId('my-email@localhost');
     }
 
@@ -850,43 +873,43 @@ class EmailTest extends TestCase
     /**
      * Test that using unknown transports fails.
      *
-     * @expectedException \InvalidArgumentException
-     * @expectedExceptionMessage Transport config "Invalid" is missing.
      */
     public function testTransportInvalid()
     {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Transport config "Invalid" is missing.');
         $this->Email->transport('Invalid');
     }
 
     /**
      * Test that using classes with no send method fails.
      *
-     * @expectedException \LogicException
      */
     public function testTransportInstanceInvalid()
     {
+        $this->expectException(\LogicException::class);
         $this->Email->transport(new \StdClass());
     }
 
     /**
      * Test that using unknown transports fails.
      *
-     * @expectedException \InvalidArgumentException
-     * @expectedExceptionMessage The value passed for the "$name" argument must be either a string, or an object, integer given.
      */
     public function testTransportTypeInvalid()
     {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('The value passed for the "$name" argument must be either a string, or an object, integer given.');
         $this->Email->transport(123);
     }
 
     /**
      * Test that using misconfigured transports fails.
      *
-     * @expectedException \InvalidArgumentException
-     * @expectedExceptionMessage Transport config "debug" is invalid, the required `className` option is missing
      */
     public function testTransportMissingClassName()
     {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Transport config "debug" is invalid, the required `className` option is missing');
         Email::dropTransport('debug');
         Email::configTransport('debug', []);
 
@@ -938,10 +961,10 @@ class EmailTest extends TestCase
     /**
      * Test that exceptions are raised when duplicate transports are configured.
      *
-     * @expectedException \BadMethodCallException
      */
     public function testConfigTransportErrorOnDuplicate()
     {
+        $this->expectException(\BadMethodCallException::class);
         Email::dropTransport('debug');
         $settings = [
             'className' => 'Debug',
@@ -1014,11 +1037,11 @@ class EmailTest extends TestCase
     /**
      * Test that exceptions are raised on duplicate config set.
      *
-     * @expectedException \BadMethodCallException
      * @return void
      */
     public function testConfigErrorOnDuplicate()
     {
+        $this->expectException(\BadMethodCallException::class);
         $settings = [
             'to' => 'mark@example.com',
             'from' => 'noreply@example.com',
@@ -1063,11 +1086,11 @@ class EmailTest extends TestCase
     /**
      * Test that using an invalid profile fails.
      *
-     * @expectedException \InvalidArgumentException
-     * @expectedExceptionMessage Unknown email configuration "derp".
      */
     public function testProfileInvalid()
     {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unknown email configuration "derp".');
         $email = new Email();
         $email->profile('derp');
     }
@@ -1175,11 +1198,11 @@ class EmailTest extends TestCase
     /**
      * testSendWithoutFrom method
      *
-     * @expectedException \BadMethodCallException
      * @return void
      */
     public function testSendWithoutFrom()
     {
+        $this->expectException(\BadMethodCallException::class);
         $this->Email->transport('debug');
         $this->Email->to('cake@cakephp.org');
         $this->Email->subject('My title');
@@ -1190,11 +1213,11 @@ class EmailTest extends TestCase
     /**
      * testSendWithoutTo method
      *
-     * @expectedException \BadMethodCallException
      * @return void
      */
     public function testSendWithoutTo()
     {
+        $this->expectException(\BadMethodCallException::class);
         $this->Email->transport('debug');
         $this->Email->from('cake@cakephp.org');
         $this->Email->subject('My title');
@@ -1205,12 +1228,12 @@ class EmailTest extends TestCase
     /**
      * test send without a transport method
      *
-     * @expectedException \BadMethodCallException
-     * @expectedExceptionMessage Cannot send email, transport was not defined.
      * @return void
      */
     public function testSendWithoutTransport()
     {
+        $this->expectException(\BadMethodCallException::class);
+        $this->expectExceptionMessage('Cannot send email, transport was not defined.');
         $this->Email->to('cake@cakephp.org');
         $this->Email->from('cake@cakephp.org');
         $this->Email->subject('My title');
@@ -1877,7 +1900,7 @@ class EmailTest extends TestCase
 
         $message = $this->Email->message();
         $boundary = $this->Email->getBoundary();
-        $this->assertFalse(empty($boundary));
+        $this->assertNotEmpty($boundary);
         $this->assertContains('--' . $boundary, $message);
         $this->assertContains('--' . $boundary . '--', $message);
 
@@ -1886,7 +1909,7 @@ class EmailTest extends TestCase
 
         $message = $this->Email->message();
         $boundary = $this->Email->getBoundary();
-        $this->assertFalse(empty($boundary));
+        $this->assertNotEmpty($boundary);
         $this->assertContains('--' . $boundary, $message);
         $this->assertContains('--' . $boundary . '--', $message);
         $this->assertContains('--alt-' . $boundary, $message);
@@ -2475,6 +2498,30 @@ class EmailTest extends TestCase
     }
 
     /**
+     * Test transferEncoding
+     *
+     * @return void
+     */
+    public function testTransferEncoding()
+    {
+        // Test new transfer encoding
+        $expected = 'quoted-printable';
+        $this->Email->setTransferEncoding($expected);
+        $this->assertSame($expected, $this->Email->getTransferEncoding());
+        $this->assertSame($expected, $this->Email->getContentTransferEncoding());
+
+        // Test default charset/encoding : utf8/8bit
+        $expected = '8bit';
+        $this->Email->reset();
+        $this->assertNull($this->Email->getTransferEncoding());
+        $this->assertSame($expected, $this->Email->getContentTransferEncoding());
+
+        //Test wrong encoding
+        $this->expectException(\InvalidArgumentException::class);
+        $this->Email->setTransferEncoding('invalid');
+    }
+
+    /**
      * Tests for compatible check.
      *          charset property and       charset() method.
      *    headerCharset property and headerCharset() method.
@@ -2829,7 +2876,7 @@ XML;
                     'mimetype' => 'image/png'
                 ]
             ],
-            '_emailPattern' => '/^((?:[\p{L}0-9.!#$%&\'*+\/=?^_`{|}~-]+)*@[\p{L}0-9-.]+)$/ui'
+            '_emailPattern' => '/^((?:[\p{L}0-9.!#$%&\'*+\/=?^_`{|}~-]+)*@[\p{L}0-9-._]+)$/ui'
         ];
         $this->assertEquals($expected, $result);
 

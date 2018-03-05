@@ -52,12 +52,12 @@ class CommandRunnerTest extends TestCase
      * Test that the console hook not returning a command collection
      * raises an error.
      *
-     * @expectedException \RuntimeException
-     * @expectedExceptionMessage The application's `console` method did not return a CommandCollection.
      * @return void
      */
     public function testRunConsoleHookFailure()
     {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('The application\'s `console` method did not return a CommandCollection.');
         $app = $this->getMockBuilder(BaseApplication::class)
             ->setMethods(['console', 'middleware', 'bootstrap'])
             ->setConstructorArgs([$this->config])
@@ -69,12 +69,12 @@ class CommandRunnerTest extends TestCase
     /**
      * Test that running with empty argv fails
      *
-     * @expectedException \RuntimeException
-     * @expectedExceptionMessage Cannot run any commands. No arguments received.
      * @return void
      */
     public function testRunMissingRootCommand()
     {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Cannot run any commands. No arguments received.');
         $app = $this->getMockBuilder(BaseApplication::class)
             ->setMethods(['middleware', 'bootstrap'])
             ->setConstructorArgs([$this->config])
@@ -87,12 +87,12 @@ class CommandRunnerTest extends TestCase
     /**
      * Test that running an unknown command raises an error.
      *
-     * @expectedException \RuntimeException
-     * @expectedExceptionMessage Unknown command `cake nope`. Run `cake --help` to get the list of valid commands.
      * @return void
      */
     public function testRunInvalidCommand()
     {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Unknown command `cake nope`. Run `cake --help` to get the list of valid commands.');
         $app = $this->getMockBuilder(BaseApplication::class)
             ->setMethods(['middleware', 'bootstrap'])
             ->setConstructorArgs([$this->config])
@@ -206,6 +206,29 @@ class CommandRunnerTest extends TestCase
 
         $contents = implode("\n", $output->messages());
         $this->assertContains('URI template', $contents);
+    }
+
+    /**
+     * Test running a valid command and that backwards compatible
+     * inflection is hooked up.
+     *
+     * @return void
+     */
+    public function testRunValidCommandInflection()
+    {
+        $app = $this->getMockBuilder(BaseApplication::class)
+            ->setMethods(['middleware', 'bootstrap'])
+            ->setConstructorArgs([$this->config])
+            ->getMock();
+
+        $output = new ConsoleOutput();
+
+        $runner = new CommandRunner($app, 'cake');
+        $result = $runner->run(['cake', 'OrmCache', 'build'], $this->getMockIo($output));
+        $this->assertSame(Shell::CODE_SUCCESS, $result);
+
+        $contents = implode("\n", $output->messages());
+        $this->assertContains('Cache', $contents);
     }
 
     /**
