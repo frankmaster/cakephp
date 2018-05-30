@@ -160,9 +160,11 @@ class BasicsTest extends TestCase
         $result = h($string, false);
         $this->assertEquals('&lt;foo&gt; &amp; &nbsp;', $result);
 
-        $string = '<foo> & &nbsp;';
-        $result = h($string, 'UTF-8');
-        $this->assertEquals('&lt;foo&gt; &amp; &amp;nbsp;', $result);
+        $this->deprecated(function () {
+            $string = '<foo> & &nbsp;';
+            $result = h($string, 'UTF-8');
+            $this->assertEquals('&lt;foo&gt; &amp; &amp;nbsp;', $result);
+        });
 
         $string = "An invalid\x80string";
         $result = h($string);
@@ -576,7 +578,7 @@ EXPECTED;
     public function testEventManagerReset1()
     {
         $eventManager = EventManager::instance();
-        $this->assertInstanceOf('Cake\Event\EventManager', $eventManager);
+        $this->assertInstanceOf(EventManager::class, $eventManager);
 
         return $eventManager;
     }
@@ -589,7 +591,7 @@ EXPECTED;
      */
     public function testEventManagerReset2($prevEventManager)
     {
-        $this->assertInstanceOf('Cake\Event\EventManager', $prevEventManager);
+        $this->assertInstanceOf(EventManager::class, $prevEventManager);
         $this->assertNotSame($prevEventManager, EventManager::instance());
     }
 }

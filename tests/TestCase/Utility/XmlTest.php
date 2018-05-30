@@ -18,6 +18,7 @@ use Cake\Collection\Collection;
 use Cake\Core\Configure;
 use Cake\ORM\Entity;
 use Cake\TestSuite\TestCase;
+use Cake\Utility\Exception\XmlException;
 use Cake\Utility\Xml;
 
 /**
@@ -64,6 +65,19 @@ class XmlTest extends TestCase
         Configure::write('App.encoding', $this->_appEncoding);
     }
 
+    public function testExceptionChainingForInvalidInput()
+    {
+        try {
+            $value = "invalid-xml-input<<";
+            Xml::build($value);
+            $this->fail('This line should not be executed because of exception above.');
+        } catch (XmlException $exception) {
+            $cause = $exception->getPrevious();
+            $this->assertNotNull($cause);
+            $this->assertInstanceOf(\Exception::class, $cause);
+        }
+    }
+
     /**
      * testBuild method
      *
@@ -73,7 +87,7 @@ class XmlTest extends TestCase
     {
         $xml = '<tag>value</tag>';
         $obj = Xml::build($xml);
-        $this->assertTrue($obj instanceof \SimpleXMLElement);
+        $this->assertInstanceOf(\SimpleXMLElement::class, $obj);
         $this->assertEquals('tag', (string)$obj->getName());
         $this->assertEquals('value', (string)$obj);
 
@@ -81,7 +95,7 @@ class XmlTest extends TestCase
         $this->assertEquals($obj, Xml::build($xml));
 
         $obj = Xml::build($xml, ['return' => 'domdocument']);
-        $this->assertTrue($obj instanceof \DOMDocument);
+        $this->assertInstanceOf(\DOMDocument::class, $obj);
         $this->assertEquals('tag', $obj->firstChild->nodeName);
         $this->assertEquals('value', $obj->firstChild->nodeValue);
 
@@ -270,7 +284,7 @@ class XmlTest extends TestCase
             ]
         ];
         $obj = Xml::fromArray($xml, 'attributes');
-        $this->assertTrue($obj instanceof \SimpleXMLElement);
+        $this->assertInstanceOf(\SimpleXMLElement::class, $obj);
         $this->assertEquals('tags', $obj->getName());
         $this->assertEquals(2, count($obj));
         $xmlText = <<<XML
@@ -283,7 +297,7 @@ XML;
         $this->assertXmlStringEqualsXmlString($xmlText, $obj->asXML());
 
         $obj = Xml::fromArray($xml);
-        $this->assertTrue($obj instanceof \SimpleXMLElement);
+        $this->assertInstanceOf(\SimpleXMLElement::class, $obj);
         $this->assertEquals('tags', $obj->getName());
         $this->assertEquals(2, count($obj));
         $xmlText = <<<XML
